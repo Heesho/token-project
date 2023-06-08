@@ -20,6 +20,7 @@ contract VTOKEN is ERC20, ERC20Permit, ERC20Votes, Ownable {
     error VTOKEN__InvalidZeroAddress();
     error VTOKEN__VotingWeightActive();
     error VTOKEN__CollateralActive();
+    error VTOKEN__NonTransferable();
 
     /*----------  EVENTS ------------------------------------------------*/
 
@@ -41,7 +42,10 @@ contract VTOKEN is ERC20, ERC20Permit, ERC20Votes, Ownable {
         _;
     }
 
-    modifier zeroVotingWeight(address _account)
+    modifier zeroVotingWeight(address _account) {
+        if (IVoter(voter).usedWeights(_account) > 0) revert VTOKEN__VotingWeightActive();
+        _;
+    }
 
     /*----------  FUNCTIONS  --------------------------------------------*/
 
@@ -51,7 +55,6 @@ contract VTOKEN is ERC20, ERC20Permit, ERC20Votes, Ownable {
         rewarder = address(new Rewarder(address(this)));
     }
 
-    // reentrency gaurd
     function deposit(uint256 amount) 
         external
         nonReentrant
@@ -67,32 +70,34 @@ contract VTOKEN is ERC20, ERC20Permit, ERC20Votes, Ownable {
         Rewarder(rewarder)._deposit(amount, account);
     }
 
-    // reentrency gaurd
     function withdraw(uint256 amount) 
         external
         nonReentrant
         nonZeroInput(amount)
-
+        zeroVotingWeight(msg.sender)
     {
         address account = msg.sender;
-        require(IVoter(voter).usedWeights(account) == 0, "Votes must be reset");
-        
         _totalSupplyTOKEN -= amount;
         _balancesTOKEN[account] -= amount;
-        require(_balancesTOKEN[account] >= ITOKEN(address(TOKEN)).debt(account), "Borrow debt");
-        Rewarder(rewarder)._withdraw(amount, account);
+        if (_balancesTOKEN[account] < ITOKEN(address(TOKEN)).debts(account)) revert VTOKEN__CollateralActive();
         _burn(account, amount);
-        TOKEN.safeTransfer(account, amount);
         emit Withdrawn(account, amount);
+        
+        Rewarder(rewarder)._withdraw(amount, account);
+        TOKEN.safeTransfer(account, amount);
     }
 
-    function burnFor(address account, uint256 amount) public {
-        require(account != address(0x0), "Cannot burn to 0x0");
-        require(amount > 0, "Cannot burn 0");
-        IOTOKEN(address(OTOKEN)).burnFrom(msg.sender, amount);
+    function burnFor(address account, uint256 amount) 
+        external
+        nonReentrant
+        nonZeroInput(amount)
+        nonZeroAddress(account)
+    {
         _mint(account, amount);
-        Rewarder(rewarder)._deposit(amount, account);
         emit BurnedFor(msg.sender, account, amount);
+
+        IOTOKEN(address(OTOKEN)).burnFrom(msg.sender, amount);
+        Rewarder(rewarder)._deposit(amount, account);
     }
 
     /*----------  FUNCTION OVERRIDES  -----------------------------------*/
@@ -130,14 +135,20 @@ contract VTOKEN is ERC20, ERC20Permit, ERC20Votes, Ownable {
 
     /*----------  RESTRICTED FUNCTIONS  ---------------------------------*/
 
-    function setVoter(address _voter) external onlyOwner {
-        require(_voter != address(0), "!Valid");
+    function setVoter(address _voter) 
+        external 
+        onlyOwner 
+        nonZeroAddress(_voter)
+    {
         voter = _voter;
         emit VoterSet(_voter);
     }
 
-    function addReward(address _rewardToken) external onlyOwner {
-        require(_rewardToken != address(0), "!Valid");
+    function addReward(address _rewardToken) 
+        external 
+        onlyOwner
+        nonZeroAddress(_rewardToken)
+    {
         Rewarder(rewarder).addReward(_rewardToken);
         emit RewardAdded(_rewardToken);
     }
@@ -162,7 +173,7 @@ contract VTOKEN is ERC20, ERC20Permit, ERC20Votes, Ownable {
 
     function withdrawAvailable(address account) external view returns (uint256) {
         if (IVoter(voter).usedWeights(account) == 0) {
-            return _balancesTOKEN[account] - ITOKEN(address(TOKEN)).debt(account);
+            return _balancesTOKEN[account] - ITOKEN(address(TOKEN)).debts(account);
         } else {
             return 0;
         }
