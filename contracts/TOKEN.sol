@@ -1,18 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import 'contracts/TOKENFees.sol';
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import 'contracts/interfaces/ITOKEN.sol';
 import 'contracts/interfaces/IVTOKEN.sol';
-import 'contracts/interfaces/IRewarder.sol';
 import 'contracts/interfaces/IOTOKEN.sol';
 
 /** @title TOKEN Bonding Curve
- *  @author Heesho
+ *  @author heesho
  *  Bonding Curve Mints/Burns TOKEN algorithmically from the floor reserves and market reserves
  *  TOKEN is backed by a reserve of BASE
  *  The floor reserves are the amount of BASE that is always available to be redeemed for TOKEN at the constant floor price
@@ -38,7 +35,7 @@ contract TOKEN is ERC20, ReentrancyGuard, Ownable {
 
     /*----------  CONSTANTS  --------------------------------------------*/
 
-    uint256 public constant PROTOCOL_FEE = 20;     // Swap and borrow fee: buy, sell, borrow
+    uint256 public constant PROTOCOL_FEE = 30;     // Swap and borrow fee: buy, sell, borrow
     uint256 public constant PROVIDER_FEE = 2000;   // Fee for the UI hosting provider
     uint256 public constant DIVISOR = 10000;       // Divisor for fee calculation
     uint256 public constant FLOOR_PRICE = 1e18;    // Floor price of TOKEN in BASE
@@ -74,13 +71,13 @@ contract TOKEN is ERC20, ReentrancyGuard, Ownable {
 
     /*----------  EVENTS ------------------------------------------------*/
 
-    event Buy(address indexed account, address indexed to, uint256 amount);
-    event Sell(address indexed account, address indexed to, uint256 amount);
-    event Exercise(address indexed account, address indexed to, uint256 amount);
-    event Redeem(address indexed account, address indexed to, uint256 amount);
-    event Borrow(address indexed account, uint256 amount);
-    event Repay(address indexed account, uint256 amount);
-    event TreasurySet(address indexed account);
+    event TOKEN__Buy(address indexed account, address indexed to, uint256 amount);
+    event TOKEN__Sell(address indexed account, address indexed to, uint256 amount);
+    event TOKEN__Exercise(address indexed account, address indexed to, uint256 amount);
+    event TOKEN__Redeem(address indexed account, address indexed to, uint256 amount);
+    event TOKEN__Borrow(address indexed account, uint256 amount);
+    event TOKEN__Repay(address indexed account, uint256 amount);
+    event TOKEN__TreasurySet(address indexed account);
 
     /*----------  MODIFIERS  --------------------------------------------*/
 
@@ -96,6 +93,15 @@ contract TOKEN is ERC20, ReentrancyGuard, Ownable {
 
     /*----------  FUNCTIONS  --------------------------------------------*/
 
+    /**
+     * @notice Construct a new TOKEN Bonding Curve. TOKEN and BASE reserves will be equal.
+     *         The initial supply of TOKEN will be minted to the bonding curve with an equal amount of virtual BASE.
+     * @dev The BASE must be an 18 decimal ERC20 token, otherwise the bonding curve will not function correctly
+     * @param _BASE The ERC20 in the bonding curve reserves
+     * @param _OTOKEN The call option on TOKEN that can be exercised at the floor price of the bonding curve
+     * @param _treasury The treasury address for protocol revenue
+     * @param _supplyTOKEN The initial supply of TOKEN to mint to the bonding curve
+     */
     constructor(address _BASE, address _OTOKEN, address _treasury, uint256 _supplyTOKEN) 
         ERC20('TOKEN', 'TOKEN')     
     {
@@ -138,7 +144,7 @@ contract TOKEN is ERC20, ReentrancyGuard, Ownable {
         mrrBASE = newMrBASE - mrvBASE;
         mrrTOKEN = newMrTOKEN;
 
-        emit Buy(account, toAccount, amountBase);
+        emit TOKEN__Buy(account, toAccount, amountBase);
 
         transfer(toAccount, outTOKEN);
         if (provider != address(0)) {
@@ -184,7 +190,7 @@ contract TOKEN is ERC20, ReentrancyGuard, Ownable {
         mrrBASE = newMrBASE - mrvBASE;
         mrrTOKEN = newMrTOKEN;
 
-        emit Sell(account, toAccount, amountToken);
+        emit TOKEN__Sell(account, toAccount, amountToken);
 
         if (_provider != address(0)) {
             uint256 providerFee = feeTOKEN * PROVIDER / DIVISOR;
@@ -215,7 +221,7 @@ contract TOKEN is ERC20, ReentrancyGuard, Ownable {
         address account = msg.sender;
         frBASE += amountOToken;
         _mint(toAccount, amountOToken);
-        emit Exercise(account, toAccount, amountOToken);
+        emit TOKEN__Exercise(account, toAccount, amountOToken);
         OTOKEN.burnFrom(account, amountOToken);
         BASE.safeTransferFrom(account, address(this), amountOToken);
         return true;
@@ -236,7 +242,7 @@ contract TOKEN is ERC20, ReentrancyGuard, Ownable {
         address account = msg.sender;
         frBASE -= _amountTOKEN;
         _burn(account, _amountTOKEN);
-        emit Redeem(account, toAccount, _amountTOKEN);
+        emit TOKEN__Redeem(account, toAccount, _amountTOKEN);
         BASE.safeTransfer(_to, _amountTOKEN);
         return true;
     }
@@ -261,7 +267,7 @@ contract TOKEN is ERC20, ReentrancyGuard, Ownable {
         debt[account] += amountBase;
         debtTotal += amountBase;
         uint256 feeBASE = amountBase * PROTOCOL_FEE / DIVISOR;
-        emit Borrow(account, amountBase);
+        emit TOKEN__Borrow(account, amountBase);
         BASE.safeTransfer(FEES, feeBASE);
         BASE.safeTransfer(account, amountBase - feeBASE);
         return true;
@@ -282,7 +288,7 @@ contract TOKEN is ERC20, ReentrancyGuard, Ownable {
         uint256 _debt = debt[account];
         debt[account] -= amountBase;
         debtTotal -= amountBase;
-        emit Repay(account, amountBase);
+        emit TOKEN__Repay(account, amountBase);
         BASE.safeTransferFrom(account, address(this), amountBase);
         return true;
     }
@@ -292,7 +298,7 @@ contract TOKEN is ERC20, ReentrancyGuard, Ownable {
     function setTreasury(address newTreasury) external onlyOwner {
         if (newTreasury == address(0)) revert TOKEN__InvalidZeroAddress();
         treasury = newTreasury;
-        emit TreasurySet(newTreasury);
+        emit TOKEN__TreasurySet(newTreasury);
     }
 
     /*----------  VIEW FUNCTIONS  ---------------------------------------*/
