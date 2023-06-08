@@ -241,6 +241,14 @@ contract TOKEN is ERC20, ReentrancyGuard, Ownable {
         return true;
     }
 
+    /**
+     * @notice Borrow BASE from the bonding curve against VTOKEN collateral at the floor price of TOKEN.
+     *         VTOKEN collateral is locked until the debt is repaid. No bad debt is possible because TOKEN can
+     *         never go below the floor price. Therefore, no oracle or liquidation mechanism is required.
+     * @param amountBase Amount of BASE to borrow, must be less than the account's borrow credit limit 
+     *                   (VTOKEN balance * floor price of TOKEN)
+     * @return bool true=success, otherwise false
+     */
     function borrow(uint256 amountBase)
         external
         nonReentrant
@@ -248,13 +256,41 @@ contract TOKEN is ERC20, ReentrancyGuard, Ownable {
         returns (bool)
     {
         address account = msg.sender;
+        uint256 credit = getAccountCredit(account);
+        if (credit < amountBase) revert TOKEN__ExceedsBorrowCreditLimit();
+        debt[account] += amountBase;
+        debtTotal += amountBase;
+        uint256 feeBASE = amountBase * PROTOCOL_FEE / DIVISOR;
+        emit Borrow(account, amountBase);
+        BASE.safeTransfer(FEES, feeBASE);
+        BASE.safeTransfer(account, amountBase - feeBASE);
+        return true;
+    }
 
+    /**
+     * @notice Repay BASE to the bonding curve to reduce the account's borrow credit limit and unlock VTOKEN collateral
+     * @param amountBase Amount of BASE to repay, must be less than or equal to the account's debt
+     * @return bool true=success, otherwise false
+     */
+    function repay(uint256 amountBase) 
+        external
+        nonReentrant
+        nonZeroInput(amountBase)
+        returns (bool)
+    {
+        address account = msg.sender;
+        uint256 _debt = debt[account];
+        debt[account] -= amountBase;
+        debtTotal -= amountBase;
+        emit Repay(account, amountBase);
+        BASE.safeTransferFrom(account, address(this), amountBase);
+        return true;
     }
 
     /*----------  RESTRICTED FUNCTIONS  ---------------------------------*/
 
     function setTreasury(address newTreasury) external onlyOwner {
-        if (newTreasury == address(0)) revert Treasury__ZeroAddress();
+        if (newTreasury == address(0)) revert TOKEN__InvalidZeroAddress();
         treasury = newTreasury;
         emit TreasurySet(newTreasury);
     }
