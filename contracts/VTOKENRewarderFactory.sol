@@ -2,15 +2,8 @@
 pragma solidity 0.8.19;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import 'contracts/utilities/ReentrancyGuard.sol';
-import 'contracts/interfaces/IVoter.sol';
-import 'contracts/interfaces/ITOKEN.sol';
-import 'contracts/interfaces/IOTOKEN.sol';
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 
 /**
  * @title VTOKENRewarder
@@ -20,7 +13,7 @@ import 'contracts/interfaces/IOTOKEN.sol';
  * to this contract based on when users deposit/withdraw/burn in the VTOKEN contract. The user balance in this contract
  * should always be equal to the users voting power in the VTOKEN contract. 
  */
-contract VTOKENRewarder is ReentrancyGuard{
+contract VTOKENRewarder is ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     /*----------  CONSTANTS  --------------------------------------------*/
@@ -78,7 +71,7 @@ contract VTOKENRewarder is ReentrancyGuard{
         _;
     }
 
-    modifier onlyVTOKEN() {
+    modifier onlyVTOKEN(address _address) {
         if (msg.sender != VTOKEN) {
             revert VTOKENRewarder__NotAuthorizedVTOKEN();
         }
@@ -105,7 +98,7 @@ contract VTOKENRewarder is ReentrancyGuard{
             uint256 reward = rewards[account][_rewardsToken];
             if (reward > 0) {
                 rewards[account][_rewardsToken] = 0;
-                emit RewardPaid(account, _rewardsToken, reward);
+                emit VTOKENRewarder__RewardPaid(account, _rewardsToken, reward);
 
                 IERC20(_rewardsToken).safeTransfer(account, reward);
             }
@@ -137,7 +130,7 @@ contract VTOKENRewarder is ReentrancyGuard{
         }
         rewardData[_rewardsToken].lastUpdateTime = block.timestamp;
         rewardData[_rewardsToken].periodFinish = block.timestamp + DURATION;
-        emit RewardNotified(_rewardsToken, reward);
+        emit VTOKENRewarder__RewardNotified(_rewardsToken, reward);
     }
 
     /*----------  RESTRICTED FUNCTIONS  ---------------------------------*/
@@ -155,7 +148,7 @@ contract VTOKENRewarder is ReentrancyGuard{
     {
         _totalSupply = _totalSupply + amount;
         _balances[account] = _balances[account] + amount;
-        emit Staked(account, amount);
+        emit VTOKENRewarder__Staked(account, amount);
     }
 
     /**
@@ -171,7 +164,7 @@ contract VTOKENRewarder is ReentrancyGuard{
     {
         _totalSupply = _totalSupply - amount;
         _balances[account] = _balances[account] - amount;
-        emit Withdrawn(account, amount);
+        emit VTOKENRewarder__Withdrawn(account, amount);
     }
 
     function addReward(address _rewardsToken) 
@@ -181,7 +174,7 @@ contract VTOKENRewarder is ReentrancyGuard{
         if (isRewardToken[_rewardsToken]) revert VTOKENRewarder__RewardTokenAlreadyAdded();
         isRewardToken[_rewardsToken] = true;
         rewardTokens.push(_rewardsToken);
-        emit RewardAdded(_rewardsToken);
+        emit VTOKENRewarder__RewardAdded(_rewardsToken);
     }
 
     /*----------  VIEW FUNCTIONS  ---------------------------------------*/
@@ -231,6 +224,7 @@ contract VTOKENRewarder is ReentrancyGuard{
     }
 
 }
+
 
 contract VTOKENRewarderFactory {
 

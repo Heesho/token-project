@@ -4,8 +4,14 @@ pragma solidity 0.8.19;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "contracts/interfaces/ITOKEN.sol";
-import "contracts/interfaces/IRewarder.sol";
+
+interface ITOKEN {
+    function treasury() external view returns (address);
+}
+
+interface IVTOKENRewarder {
+    function notifyRewardAmount(address token, uint amount) external;
+}
 
 /**
  * @title TOKENFees
@@ -19,7 +25,7 @@ contract TOKENFees {
 
     /*----------  STATE VARIABLES  --------------------------------------*/
 
-    IRewarder public immutable rewarder;    // rewarder address to distribute fees to VTOKEN stakers
+    address public immutable rewarder;    // rewarder address to distribute fees to VTOKEN stakers
     IERC20 public immutable TOKEN;          // TOKEN address
     IERC20 public immutable BASE;           // BASE address
     IERC20 public immutable OTOKEN;         // OTOKEN address
@@ -34,13 +40,13 @@ contract TOKENFees {
 
     /**
      * @notice constructs a new TOKENFees contract
-     * @param rewarder address of the rewarder contract
-     * @param TOKEN address of TOKEN contract
-     * @param BASE address of BASE contract
-     * @param OTOKEN address of OTOKEN contract
+     * @param _rewarder address of the rewarder contract
+     * @param _TOKEN address of TOKEN contract
+     * @param _BASE address of BASE contract
+     * @param _OTOKEN address of OTOKEN contract
      */
     constructor(address _rewarder, address _TOKEN, address _BASE, address _OTOKEN) {
-        rewarder = IRewarder(_rewarder);
+        rewarder = _rewarder;
         TOKEN = IERC20(_TOKEN);
         BASE = IERC20(_BASE);
         OTOKEN = IERC20(_OTOKEN);
@@ -65,7 +71,7 @@ contract TOKENFees {
         emit TOKENFees__DistributedBASE(amountDistro);
 
         BASE.approve(rewarder, amountDistro);
-        rewarder.notifyRewardAmount(BASE, amountDistro);
+        IVTOKENRewarder(rewarder).notifyRewardAmount(address(BASE), amountDistro);
         BASE.safeTransfer(treasury, amountDistro);
     }
 
@@ -79,7 +85,7 @@ contract TOKENFees {
         emit TOKENFees__DistributedTOKEN(amountDistro);
 
         TOKEN.approve(rewarder, amountDistro);
-        rewarder.notifyRewardAmount(TOKEN, amountDistro);
+        IVTOKENRewarder(rewarder).notifyRewardAmount(address(TOKEN), amountDistro);
         TOKEN.safeTransfer(treasury, amountDistro);
     }
 
@@ -91,14 +97,15 @@ contract TOKENFees {
         emit TOKENFees__DistributedOTOKEN(balanceOTOKEN);
 
         OTOKEN.approve(rewarder, balanceOTOKEN);
-        rewarder.notifyRewardAmount(OTOKEN, balanceOTOKEN);
+        IVTOKENRewarder(rewarder).notifyRewardAmount(address(OTOKEN), balanceOTOKEN);
     }
 
 }
 
+
 contract TOKENFeesFactory {
 
-    event TokenFeesFactory__TokenFeesCreated(address indexed tokenFees);
+    event TOKENFeesFactory__TokenFeesCreated(address indexed tokenFees);
 
     constructor() {}
 

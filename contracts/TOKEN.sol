@@ -1,12 +1,30 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-import 'contracts/TOKENFees.sol';
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import 'contracts/interfaces/ITOKEN.sol';
-import 'contracts/interfaces/IVTOKEN.sol';
-import 'contracts/interfaces/IOTOKEN.sol';
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
+interface IOTOKEN {
+    function burnFrom(address account, uint256 amount) external;
+}
+
+interface IVTOKEN {
+    function balanceOfTOKEN(address account) external view returns (uint256);
+}
+
+interface IOTOKENFactory {
+    function createOToken(address _treasury) external returns (address);
+}
+
+interface IVTOKENFactory {
+    function createVToken(address _TOKEN, address _OTOKEN, address _VTOKENRewarderFactory) external returns (address, address);
+}
+
+interface ITOKENFeesFactory {
+    function createTokenFees(address _rewarder, address _TOKEN, address _BASE, address _OTOKEN) external returns (address);
+}
 
 /** 
  * @title TOKEN Bonding Curve
@@ -34,7 +52,7 @@ import 'contracts/interfaces/IOTOKEN.sol';
  */ 
 
 contract TOKEN is ERC20, ReentrancyGuard, Ownable {
-    using safeERC20 for IERC20;
+    using SafeERC20 for IERC20;
 
     /*----------  CONSTANTS  --------------------------------------------*/
 
@@ -48,8 +66,8 @@ contract TOKEN is ERC20, ReentrancyGuard, Ownable {
 
     // Address state variables
     IERC20 public immutable BASE;       // ERC20 token that backs TOKEN with liquidity in Bonding Curve. Must be 18 decimals
-    IOTOKEN public immutable OTOKEN;    // Call option on TOKEN that can be exercised at the floor price of the bonding curve
-    IVTOKEN public immutable VTOKEN;    // Staking contract for TOKEN to earn fees, rewards, voting power, and collateral for loans
+    address public immutable OTOKEN;    // Call option on TOKEN that can be exercised at the floor price of the bonding curve
+    address public immutable VTOKEN;    // Staking contract for TOKEN to earn fees, rewards, voting power, and collateral for loans
     address public immutable FEES;      // Fees contract collects fees swaps and loans to distribute through rewarder
     address public treasury;            // Treasury for protocol revenue
 
@@ -101,20 +119,28 @@ contract TOKEN is ERC20, ReentrancyGuard, Ownable {
      *         The initial supply of TOKEN will be minted to the bonding curve with an equal amount of virtual BASE.
      * @dev The BASE must be an 18 decimal ERC20 token, otherwise the bonding curve will not function correctly
      * @param _BASE The ERC20 in the bonding curve reserves
-     * @param _OTOKEN The call option on TOKEN that can be exercised at the floor price of the bonding curve
      * @param _treasury The treasury address for protocol revenue
      * @param _supplyTOKEN The initial supply of TOKEN to mint to the bonding curve
      */
-    constructor(address _BASE, address _OTOKEN, address _treasury, uint256 _supplyTOKEN) 
-        ERC20('TOKEN', 'TOKEN')     
+    constructor(
+        address _BASE, 
+        address _treasury, 
+        uint256 _supplyTOKEN, 
+        address _OTOKENFactory, 
+        address _VTOKENFactory, 
+        address _VTOKENRewarderFactory, 
+        address _TOKENFeesFactory
+    )
+        ERC20('TOKEN', 'TOKEN')
     {
         BASE = IERC20(_BASE);
-        OTOKEN = IOTOKEN(_OTOKEN);
-        VTOKEN = IVTOKEN(_VTOKEN);
         treasury = _treasury;
         mrvBASE = _supplyTOKEN;
         mrrTOKEN = _supplyTOKEN;
-        FEES = address(new TOKENFees(address(this), _BASE, _OTOKEN));
+        OTOKEN = IOTOKENFactory(_OTOKENFactory).createOToken(_treasury);
+        (address vToken, address rewarder) = IVTOKENFactory(_VTOKENFactory).createVToken(address(this), OTOKEN, _VTOKENRewarderFactory);
+        VTOKEN = vToken;
+        FEES = ITOKENFeesFactory(_TOKENFeesFactory).createTokenFees(rewarder, address(this), _BASE, OTOKEN);
         _mint(address(this), _supplyTOKEN);
     }
 
@@ -134,12 +160,9 @@ contract TOKEN is ERC20, ReentrancyGuard, Ownable {
         nonExpiredSwap(expireTimestamp)
         returns (bool)
     {
-        address account = msg.sender;
-
         uint256 feeBASE = amountBase * PROTOCOL_FEE / DIVISOR;
-        uint256 oldMrBASE = mrvBASE + mrrBASE;
-        uint256 newMrBASE = oldMrBASE + amountBase - feeBASE;
-        uint256 newMrTOKEN = oldMrBASE * mrrTOKEN / newMrBASE;
+        uint256 newMrBASE = (mrvBASE + mrrBASE) + amountBase - feeBASE;
+        uint256 newMrTOKEN = (mrvBASE + mrrBASE) * mrrTOKEN / (newMrBASE);
         uint256 outTOKEN = mrrTOKEN - newMrTOKEN;
 
         if (outTOKEN < minToken) revert TOKEN__ExceedsSwapSlippageTolerance();
@@ -147,17 +170,17 @@ contract TOKEN is ERC20, ReentrancyGuard, Ownable {
         mrrBASE = newMrBASE - mrvBASE;
         mrrTOKEN = newMrTOKEN;
 
-        emit TOKEN__Buy(account, toAccount, amountBase);
+        emit TOKEN__Buy(msg.sender, toAccount, amountBase);
 
         transfer(toAccount, outTOKEN);
         if (provider != address(0)) {
-            uint256 providerFee = feeBASE * PROVIDER / DIVISOR;
-            BASE.safeTransferFrom(account, provider, providerFee);
-            BASE.safeTransferFrom(account, FEES, feeBASE - providerFee);
+            uint256 providerFee = feeBASE * PROVIDER_FEE / DIVISOR;
+            BASE.safeTransferFrom(msg.sender, provider, providerFee);
+            BASE.safeTransferFrom(msg.sender, FEES, feeBASE - providerFee);
         } else {
-            BASE.safeTransferFrom(account, FEES, feeBASE);
+            BASE.safeTransferFrom(msg.sender, FEES, feeBASE);
         }
-        IERC20(BASE).safeTransferFrom(account, address(this), amountBase - feeBASE);
+        IERC20(BASE).safeTransferFrom(msg.sender, address(this), amountBase - feeBASE);
         return true;
     }
 
@@ -177,32 +200,27 @@ contract TOKEN is ERC20, ReentrancyGuard, Ownable {
         nonExpiredSwap(expireTimestamp)
         returns (bool)
     {
-        address account = msg.sender;
-
         uint256 feeTOKEN = amountToken * PROTOCOL_FEE / DIVISOR;
-        uint256 oldMrTOKEN = mrrTOKEN;
         uint256 newMrTOKEN = mrrTOKEN + amountToken - feeTOKEN;
         if (newMrTOKEN > mrvBASE) revert TOKEN__ExceedsSwapMarketReserves();
-
-        uint256 oldMrBASE = mrvBASE + mrrBASE;
-        uint256 newMrBASE = oldMrBASE * oldMrTOKEN / newMrTOKEN;
-        uint256 outBASE = oldMrBASE - newMrBASE;
+        uint256 newMrBASE = (mrvBASE + mrrBASE) * mrrTOKEN / newMrTOKEN;
+        uint256 outBASE = (mrvBASE + mrrBASE) - newMrBASE;
 
         if (outBASE < minBase) revert TOKEN__ExceedsSwapSlippageTolerance();
 
         mrrBASE = newMrBASE - mrvBASE;
         mrrTOKEN = newMrTOKEN;
 
-        emit TOKEN__Sell(account, toAccount, amountToken);
+        emit TOKEN__Sell(msg.sender, toAccount, amountToken);
 
-        if (_provider != address(0)) {
-            uint256 providerFee = feeTOKEN * PROVIDER / DIVISOR;
-            transferFrom(account, provider, providerFee);
-            transferFrom(account, FEES, feeTOKEN - providerFee);
+        if (provider != address(0)) {
+            uint256 providerFee = feeTOKEN * PROVIDER_FEE / DIVISOR;
+            transferFrom(msg.sender, provider, providerFee);
+            transferFrom(msg.sender, FEES, feeTOKEN - providerFee);
         } else {
-            transferFrom(account, FEES, feeTOKEN);
+            transferFrom(msg.sender, FEES, feeTOKEN);
         }
-        transferFrom(account, address(this), amountTOKEN - feeTOKEN);
+        transferFrom(msg.sender, address(this), amountToken - feeTOKEN);
         BASE.safeTransfer(toAccount, outBASE);
         return true;
     }
@@ -225,7 +243,7 @@ contract TOKEN is ERC20, ReentrancyGuard, Ownable {
         frBASE += amountOToken;
         _mint(toAccount, amountOToken);
         emit TOKEN__Exercise(account, toAccount, amountOToken);
-        OTOKEN.burnFrom(account, amountOToken);
+        IOTOKEN(OTOKEN).burnFrom(account, amountOToken);
         BASE.safeTransferFrom(account, address(this), amountOToken);
         return true;
     }
@@ -243,10 +261,10 @@ contract TOKEN is ERC20, ReentrancyGuard, Ownable {
         returns (bool)
     {
         address account = msg.sender;
-        frBASE -= _amountTOKEN;
-        _burn(account, _amountTOKEN);
-        emit TOKEN__Redeem(account, toAccount, _amountTOKEN);
-        BASE.safeTransfer(_to, _amountTOKEN);
+        frBASE -= amountToken;
+        _burn(account, amountToken);
+        emit TOKEN__Redeem(account, toAccount, amountToken);
+        BASE.safeTransfer(toAccount, amountToken);
         return true;
     }
 
@@ -267,7 +285,7 @@ contract TOKEN is ERC20, ReentrancyGuard, Ownable {
         address account = msg.sender;
         uint256 credit = getAccountCredit(account);
         if (credit < amountBase) revert TOKEN__ExceedsBorrowCreditLimit();
-        debt[account] += amountBase;
+        debts[account] += amountBase;
         debtTotal += amountBase;
         uint256 feeBASE = amountBase * PROTOCOL_FEE / DIVISOR;
         emit TOKEN__Borrow(account, amountBase);
@@ -288,8 +306,7 @@ contract TOKEN is ERC20, ReentrancyGuard, Ownable {
         returns (bool)
     {
         address account = msg.sender;
-        uint256 _debt = debt[account];
-        debt[account] -= amountBase;
+        debts[account] -= amountBase;
         debtTotal -= amountBase;
         emit TOKEN__Repay(account, amountBase);
         BASE.safeTransferFrom(account, address(this), amountBase);
@@ -306,7 +323,7 @@ contract TOKEN is ERC20, ReentrancyGuard, Ownable {
 
     /*----------  VIEW FUNCTIONS  ---------------------------------------*/
 
-    function getFloorPrice() public view returns (uint256) {
+    function getFloorPrice() public pure returns (uint256) {
         return FLOOR_PRICE;
     }
 
@@ -327,7 +344,7 @@ contract TOKEN is ERC20, ReentrancyGuard, Ownable {
     }
 
     function getAccountCredit(address account) public view returns (uint256) {
-        return VTOKEN.balanceOfTOKEN(account) - debt[account];
+        return IVTOKEN(VTOKEN).balanceOfTOKEN(account) - debts[account];
     }
 
 }

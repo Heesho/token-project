@@ -1,6 +1,36 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+interface IVTOKENRewarderFactory {
+    function createVTokenRewarder(address _VTOKEN) external returns (address rewarder);
+}
+
+interface IVTOKENRewarder {
+    function _deposit(uint amount, address account) external;
+    function _withdraw(uint amount, address account) external;
+    function addReward(address rewardToken) external;
+}
+
+interface ITOKEN {
+    function debts(address account) external view returns (uint256);
+}
+
+interface IOTOKEN {
+    function burnFrom(address account, uint256 amount) external;
+}
+
+interface IVoter {
+    function usedWeights(address account) external view returns (uint256);
+}
+
 /**
  * @title VTOKEN
  * @author heesho
@@ -11,7 +41,7 @@ pragma solidity 0.8.19;
  * VTOKEN is non-transferable. And is locked until users reset their voting weight to 0 and pay back their loans.
  * 1 VTOKEN = 1 Voting Power
  */
-contract VTOKEN is ERC20, ERC20Permit, ERC20Votes, Ownable {
+contract VTOKEN is ERC20, ERC20Permit, ERC20Votes, ReentrancyGuard, Ownable {
     using SafeERC20 for IERC20;
 
     /*----------  STATE VARIABLES  --------------------------------------*/
@@ -64,10 +94,10 @@ contract VTOKEN is ERC20, ERC20Permit, ERC20Votes, Ownable {
      * @param _TOKEN address of TOKEN contract
      * @param _OTOKEN address of OTOKEN contract
      */
-    constructor(address _TOKEN, address _OTOKEN) ERC20("VTOKEN", "VTOKEN") ERC20Permit("VTOKEN") {
+    constructor(address _TOKEN, address _OTOKEN, address _VTOKENRewarderFactory) ERC20("VTOKEN", "VTOKEN") ERC20Permit("VTOKEN") {
         TOKEN = IERC20(_TOKEN);
         OTOKEN = IERC20(_OTOKEN);
-        rewarder = address(new Rewarder(address(this)));
+        rewarder = IVTOKENRewarderFactory(_VTOKENRewarderFactory).createVTokenRewarder(address(this));
     }
 
     /**
@@ -83,10 +113,10 @@ contract VTOKEN is ERC20, ERC20Permit, ERC20Votes, Ownable {
         _totalSupplyTOKEN += amount;
         _balancesTOKEN[account] += amount;
         _mint(account, amount);
-        emit Deposited(account, amount);
+        emit VTOKEN__Deposited(account, amount);
 
         TOKEN.safeTransferFrom(account, address(this), amount);
-        Rewarder(rewarder)._deposit(amount, account);
+        IVTOKENRewarder(rewarder)._deposit(amount, account);
     }
 
     /**
@@ -105,9 +135,9 @@ contract VTOKEN is ERC20, ERC20Permit, ERC20Votes, Ownable {
         _balancesTOKEN[account] -= amount;
         if (_balancesTOKEN[account] < ITOKEN(address(TOKEN)).debts(account)) revert VTOKEN__CollateralActive();
         _burn(account, amount);
-        emit Withdrawn(account, amount);
+        emit VTOKEN__Withdrawn(account, amount);
         
-        Rewarder(rewarder)._withdraw(amount, account);
+        IVTOKENRewarder(rewarder)._withdraw(amount, account);
         TOKEN.safeTransfer(account, amount);
     }
 
@@ -126,10 +156,10 @@ contract VTOKEN is ERC20, ERC20Permit, ERC20Votes, Ownable {
         nonZeroAddress(account)
     {
         _mint(account, amount);
-        emit BurnedFor(msg.sender, account, amount);
+        emit VTOKEN__BurnedFor(msg.sender, account, amount);
 
         IOTOKEN(address(OTOKEN)).burnFrom(msg.sender, amount);
-        Rewarder(rewarder)._deposit(amount, account);
+        IVTOKENRewarder(rewarder)._deposit(amount, account);
     }
 
     /*----------  FUNCTION OVERRIDES  -----------------------------------*/
@@ -173,7 +203,7 @@ contract VTOKEN is ERC20, ERC20Permit, ERC20Votes, Ownable {
         nonZeroAddress(_voter)
     {
         voter = _voter;
-        emit VoterSet(_voter);
+        emit VTOKEN__VoterSet(_voter);
     }
 
     function addReward(address _rewardToken) 
@@ -181,8 +211,8 @@ contract VTOKEN is ERC20, ERC20Permit, ERC20Votes, Ownable {
         onlyOwner
         nonZeroAddress(_rewardToken)
     {
-        Rewarder(rewarder).addReward(_rewardToken);
-        emit RewardAdded(_rewardToken);
+        IVTOKENRewarder(rewarder).addReward(_rewardToken);
+        emit VTOKEN__RewardAdded(_rewardToken);
     }
 
     /*----------  VIEW FUNCTIONS  ---------------------------------------*/
@@ -213,16 +243,17 @@ contract VTOKEN is ERC20, ERC20Permit, ERC20Votes, Ownable {
 
 }
 
+
 contract VTOKENFactory {
 
     event VTOKENFactory__VTokenCreated(address indexed vToken);
 
     constructor() {}
 
-    function createVToken(address _TOKEN, address _OTOKEN) external returns (address) {
-        address vToken = address(new VTOKEN(_TOKEN, _OTOKEN));
+    function createVToken(address _TOKEN, address _OTOKEN, address _VTOKENRewarderFactory) external returns (address, address) {
+        address vToken = address(new VTOKEN(_TOKEN, _OTOKEN, _VTOKENRewarderFactory));
         emit VTOKENFactory__VTokenCreated(vToken);
-        return vToken;
+        return (vToken, VTOKEN(vToken).rewarder());
     }
 
 }
