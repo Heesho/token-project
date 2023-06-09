@@ -10,7 +10,9 @@ import "contracts/interfaces/IRewarder.sol";
 /**
  * @title TOKENFees
  * @author heesho
- * @notice contract to collect fees from bonding curve and distribute them to VTOKEN stakers and treasury
+ * 
+ * TOKENFees collects fees from bonding curve (TOKEN contract) and distributed 
+ * them to VTOKEN stakers (Rewarder) and treasury.
  */
 contract TOKENFees {
     using SafeERC20 for IERC20;
@@ -18,9 +20,9 @@ contract TOKENFees {
     /*----------  STATE VARIABLES  --------------------------------------*/
 
     IRewarder public immutable rewarder;    // rewarder address to distribute fees to VTOKEN stakers
-    IERC20 public immutable TOKEN;         // TOKEN address
-    IERC20 public immutable BASE;          // BASE address
-    IERC20 public immutable OTOKEN;        // OTOKEN address
+    IERC20 public immutable TOKEN;          // TOKEN address
+    IERC20 public immutable BASE;           // BASE address
+    IERC20 public immutable OTOKEN;         // OTOKEN address
 
     /*----------  EVENTS ------------------------------------------------*/
 
@@ -32,10 +34,10 @@ contract TOKENFees {
 
     /**
      * @notice constructs a new TOKENFees contract
-     * @param _rewarder address of the rewarder contract
-     * @param __TOKEN address of TOKEN contract
-     * @param __BASE address of BASE contract
-     * @param __OTOKEN address of OTOKEN contract
+     * @param rewarder address of the rewarder contract
+     * @param TOKEN address of TOKEN contract
+     * @param BASE address of BASE contract
+     * @param OTOKEN address of OTOKEN contract
      */
     constructor(address _rewarder, address _TOKEN, address _BASE, address _OTOKEN) {
         rewarder = IRewarder(_rewarder);
@@ -96,17 +98,13 @@ contract TOKENFees {
 
 contract TOKENFeesFactory {
 
-    /*----------  EVENTS ------------------------------------------------*/
-
     event TokenFeesFactory__TokenFeesCreated(address indexed tokenFees);
-
-    /*----------  FUNCTIONS  --------------------------------------------*/
 
     constructor() {}
 
     function createTokenFees(address _rewarder, address _TOKEN, address _BASE, address _OTOKEN) external returns (address) {
         TOKENFees tokenFees = new TOKENFees(_rewarder, _TOKEN, _BASE, _OTOKEN);
-        emit TokenFeesFactory__TokenFeesCreated(address(tokenFees));
+        emit TOKENFeesFactory__TokenFeesCreated(address(tokenFees));
         return address(tokenFees);
     }
 }

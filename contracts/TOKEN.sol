@@ -8,26 +8,29 @@ import 'contracts/interfaces/ITOKEN.sol';
 import 'contracts/interfaces/IVTOKEN.sol';
 import 'contracts/interfaces/IOTOKEN.sol';
 
-/** @title TOKEN Bonding Curve
- *  @author heesho
- *  Bonding Curve Mints/Burns TOKEN algorithmically from the floor reserves and market reserves
- *  TOKEN is backed by a reserve of BASE
- *  The floor reserves are the amount of BASE that is always available to be redeemed for TOKEN at the constant floor price
- *  The market reserves are the amount of BASE and TOKEN that is available to be bought and sold at the market price using a virutal xy=k invariant
- *   _____________________
- *  |           |        /|
- *  |           |       / |
- *  |           |      /  |
- *  |           |     /   |
- *  |           |    /    |
- *  |           |   /     |              
- *  |           |  /      |            
- *  |           | /       |         
- *  |___________|/        |
- *  | FLOOR     | MARKET  |         
- *  | RESERVE   | RESERVE |   
- *  |___________|_________| 
- *  |<----Cf--->|<---Cm-->|
+/** 
+ * @title TOKEN Bonding Curve
+ * @author heesho
+ * 
+ * Bonding Curve Mints/Burns TOKEN algorithmically from the floor reserves and market reserves
+ * TOKEN is backed by a reserve of BASE
+ * The floor reserves are the amount of BASE that is always available to be redeemed for TOKEN at 
+ * the constant floor price. The market reserves are the amount of BASE and TOKEN that is available
+ * to be bought and sold at the market price using a virutal xy=k invariant.
+ *  _____________________
+ * |           |        /|
+ * |           |       / |
+ * |           |      /  |
+ * |           |     /   |
+ * |           |    /    |
+ * |           |   /     |              
+ * |           |  /      |            
+ * |           | /       |         
+ * |___________|/        |
+ * | FLOOR     | MARKET  |         
+ * | RESERVE   | RESERVE |   
+ * |___________|_________| 
+ * |<----Cf--->|<---Cm-->|
  */ 
 
 contract TOKEN is ERC20, ReentrancyGuard, Ownable {

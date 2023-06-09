@@ -7,8 +7,9 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 /**
  * @title OTOKEN
  * @author heesho
- * token contract is a call option on TOKEN that has no expiry
- * and a strike price of 1 BASE (the floor price of TOKEN)
+ * 
+ * OTOKEN is a call option on TOKEN that has no expiry
+ * and a strike price of 1 BASE (the floor price of TOKEN).
  */
 contract OTOKEN is ERC20, ERC20Burnable {
 
@@ -88,11 +89,7 @@ contract OTOKEN is ERC20, ERC20Burnable {
 
 contract OTOKENFactory {
 
-    /*----------  EVENTS ------------------------------------------------*/
-
     event OTOKENFactory__OTOKENCreated(address indexed OTOKEN);
-
-    /*----------  FUNCTIONS  --------------------------------------------*/
 
     constructor() {}
 
