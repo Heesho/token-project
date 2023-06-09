@@ -2,6 +2,7 @@
 pragma solidity 0.8.19;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -56,11 +57,12 @@ contract TOKEN is ERC20, ReentrancyGuard, Ownable {
 
     /*----------  CONSTANTS  --------------------------------------------*/
 
-    uint256 public constant PROTOCOL_FEE = 30;     // Swap and borrow fee: buy, sell, borrow
-    uint256 public constant PROVIDER_FEE = 2000;   // Fee for the UI hosting provider
-    uint256 public constant DIVISOR = 10000;       // Divisor for fee calculation
-    uint256 public constant FLOOR_PRICE = 1e18;    // Floor price of TOKEN in BASE
-    uint256 public constant PRECISION = 1e18;      // Precision
+    uint256 public constant PROTOCOL_FEE = 30;      // Swap and borrow fee: buy, sell, borrow
+    uint256 public constant PROVIDER_FEE = 2000;    // Fee for the UI hosting provider
+    uint256 public constant DIVISOR = 10000;        // Divisor for fee calculation
+    uint256 public constant FLOOR_PRICE = 1e18;     // Floor price of TOKEN in BASE
+    uint256 public constant PRECISION = 1e18;       // Precision
+    uint8 public constant DECIMALS = 18;            // Required BASE decimals
 
     /*----------  STATE VARIABLES  --------------------------------------*/
 
@@ -83,6 +85,7 @@ contract TOKEN is ERC20, ReentrancyGuard, Ownable {
 
     /*----------  ERRORS ------------------------------------------------*/
 
+    error TOKEN__InvalidDecimals();
     error TOKEN__InvalidZeroInput();
     error TOKEN__SwapExpired();
     error TOKEN__ExceedsSwapSlippageTolerance();
@@ -112,6 +115,11 @@ contract TOKEN is ERC20, ReentrancyGuard, Ownable {
         _;
     }
 
+    modifier nonZeroAddress(address _account) {
+        if (_account == address(0)) revert TOKEN__InvalidZeroAddress();
+        _;
+    }
+
     /*----------  FUNCTIONS  --------------------------------------------*/
 
     /**
@@ -132,7 +140,10 @@ contract TOKEN is ERC20, ReentrancyGuard, Ownable {
         address _TOKENFeesFactory
     )
         ERC20('TOKEN', 'TOKEN')
+        nonZeroAddress(_treasury)
+        nonZeroInput(_supplyTOKEN)
     {
+        if (IERC20Metadata(_BASE).decimals() != DECIMALS) revert TOKEN__InvalidDecimals();
         BASE = IERC20(_BASE);
         treasury = _treasury;
         mrvBASE = _supplyTOKEN;
