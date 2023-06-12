@@ -72,7 +72,7 @@ contract Bribe is ReentrancyGuard {
         _;
     }
 
-    modifier onlyVoter(address _address) {
+    modifier onlyVoter() {
         if (msg.sender != voter) {
             revert Bribe__NotAuthorizedVoter();
         }
@@ -153,7 +153,7 @@ contract Bribe is ReentrancyGuard {
      */
     function _deposit(uint256 amount, address account) 
         external 
-        onlyVoter(msg.sender)
+        onlyVoter
         nonZeroInput(amount)
         updateReward(account) 
     {
@@ -170,7 +170,7 @@ contract Bribe is ReentrancyGuard {
      */
     function _withdraw(uint256 amount, address account) 
         external 
-        onlyVoter(msg.sender)
+        onlyVoter
         nonZeroInput(amount)
         updateReward(account) 
     {
@@ -185,7 +185,7 @@ contract Bribe is ReentrancyGuard {
      */
     function addReward(address _rewardsToken) 
         external 
-        onlyVoter(msg.sender)
+        onlyVoter
     {
         if (isRewardToken[_rewardsToken]) revert Bribe__RewardTokenAlreadyAdded();
         isRewardToken[_rewardsToken] = true;
@@ -241,23 +241,32 @@ contract BribeFactory {
     address public voter;
     address public last_bribe;
 
-    event VoterSet(address indexed account);
+    error BribeFactory__UnathorizedVoter();
+    error BribeFactory__InvalidZeroAddress();
+
+    event BribeFactory__VoterSet(address indexed account);
+    event BribeFactory__BribeCreated(address indexed bribe);
+
+    modifier onlyVoter() {
+        if (msg.sender != voter) revert BribeFactory__UnathorizedVoter();
+        _;
+    }
 
     constructor(address _voter) {
         voter = _voter;
     }
 
-    function setVoter(address _voter) external {
-        require(msg.sender == voter, "!Voter");
+    function setVoter(address _voter) external onlyVoter {
         require(_voter != address(0), "!Valid");
+        if (_voter == address(0)) revert BribeFactory__InvalidZeroAddress();
         voter = _voter;
         emit VoterSet(_voter);
     }
 
-    function createBribe(address _voter) external returns (address) {
-        require(msg.sender == voter, "unauthorized");
+    function createBribe(address _voter) external onlyVoter returns (address) {
         Bribe lastBribe = new Bribe(_voter);
         last_bribe = address(lastBribe);
+        emit BribeCreated(last_bribe);
         return last_bribe;
     }
 }

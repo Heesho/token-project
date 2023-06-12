@@ -79,14 +79,14 @@ contract Gauge is ReentrancyGuard {
         _;
     }
 
-    modifier onlyPlugin(address _address) {
+    modifier onlyPlugin() {
         if (msg.sender != plugin) {
             revert Gauge__NotAuthorizedPlugin();
         }
         _;
     }
 
-    modifier onlyVoter(address _address) {
+    modifier onlyVoter() {
         if (msg.sender != voter) {
             revert Gauge__NotAuthorizedVoter();
         }
@@ -144,7 +144,7 @@ contract Gauge is ReentrancyGuard {
     function notifyRewardAmount(address _rewardsToken, uint256 reward) 
         external
         nonReentrant
-        onlyVoter(msg.sender)
+        onlyVoter
         updateReward(address(0))
     {
         if (!isRewardToken[_rewardsToken]) revert Gauge__NotRewardToken();
@@ -172,7 +172,7 @@ contract Gauge is ReentrancyGuard {
      */
     function _deposit(address account, uint256 amount) 
         external 
-        onlyPlugin(msg.sender)
+        onlyPlugin
         nonZeroInput(amount)
         updateReward(account)
     {
@@ -190,7 +190,7 @@ contract Gauge is ReentrancyGuard {
      */
     function _withdraw(address account, uint256 amount) 
         external 
-        onlyPlugin(msg.sender)
+        onlyPlugin
         nonZeroInput(amount)
         updateReward(account) 
     {
@@ -206,7 +206,7 @@ contract Gauge is ReentrancyGuard {
      */
     function addReward(address _rewardsToken) 
         external 
-        onlyVoter(msg.sender)
+        onlyVoter
     {
         if (isRewardToken[_rewardsToken]) revert Gauge__RewardTokenAlreadyAdded();
         rewardTokens.push(_rewardsToken);
@@ -258,23 +258,32 @@ contract GaugeFactory {
     address public voter;
     address public last_gauge;
 
-    event VoterSet(address indexed account);
+    error GaugeFactory__UnathorizedVoter();
+    error GaugeFactory__InvalidZeroAddress();
+
+    event GaugeFactory__VoterSet(address indexed account);
+    event GaugeFactory__GaugeCreated(address indexed Gauge);
+
+    modifier onlyVoter() {
+        if (msg.sender != voter) revert GaugeFactory__UnathorizedVoter();
+        _;
+    }
 
     constructor(address _voter) {
         voter = _voter;
     }
 
-    function setVoter(address _voter) external {
-        require (msg.sender == voter, "!Voter");
+    function setVoter(address _voter) external onlyVoter {
         require(_voter != address(0), "!Valid");
+        if (_voter == address(0)) revert GaugeFactory__InvalidZeroAddress();
         voter = _voter;
         emit VoterSet(_voter);
     }
 
-    function createGauge(address _voter, address _token) external returns (address) {
-        require(msg.sender == voter, "unauthorized");
+    function createGauge(address _voter, address _token) external onlyVoter returns (address) {
         Gauge lastGauge = new Gauge(_voter, _token);
         last_gauge = address(lastGauge);
+        emit GaugeFactory__GaugeCreated(last_gauge);
         return last_gauge;
     }
 }
