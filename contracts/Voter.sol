@@ -5,16 +5,53 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import 'contracts/interfaces/IBribe.sol';
-import 'contracts/interfaces/IBribeFactory.sol';
-import 'contracts/interfaces/IGauge.sol';
-import 'contracts/interfaces/IGaugeFactory.sol';
-import 'contracts/interfaces/IMinter.sol';
-import 'contracts/interfaces/IVoter.sol';
-import 'contracts/interfaces/IVTOKEN.sol';
-import 'contracts/interfaces/IPlugin.sol';
 
-contract Voter is IVoter, ReentrancyGaurd, Ownable {
+interface IPlugin {
+    function claimAndDistribute() external;
+    function setGauge(address gauge) external;
+    function setBribe(address bribe) external;
+    function getBribeTokens() external view returns (address[] memory);
+}
+
+interface IGauge {
+    function getReward(address account) external;
+    function left(address token) external view returns (uint);
+    function notifyRewardAmount(address token, uint amount) external;
+    function addReward(address rewardToken) external;
+}
+
+interface IBribe {
+    function getReward(address account) external;
+    function addReward(address rewardToken) external;
+    function balanceOf(address account) external view returns (uint256);
+    function _deposit(uint amount, address account) external;
+    function _withdraw(uint amount, address account) external;
+}
+
+interface IMinter {
+    function update_period() external returns (uint256);
+}
+
+interface IGaugeFactory {
+    function createGauge(address voter, address token) external returns (address);
+}
+
+interface IBribeFactory {
+    function createBribe(address voter) external returns (address);
+}
+
+interface IVTOKEN {
+    function balanceOf(address account) external view returns (uint256);
+}
+
+/**
+ * @title Voter
+ * @author heesho
+ * 
+ * Voter contract is used to vote on plugins. It is also used to create gauges for plugins and distribute rewards to gauges.
+ * 
+ */
+contract Voter is ReentrancyGuard, Ownable {
 
     /*----------  CONSTANTS  --------------------------------------------*/
 
@@ -55,11 +92,11 @@ contract Voter is IVoter, ReentrancyGaurd, Ownable {
     error Voter__PluginLengthNotEqualToWeightLength();
     error Voter__NotAuthorizedMinter();
     error Voter__InvalidZeroAddress();
+    error Voter__NotMinter();
     error Voter__GaugeExists();
     error Voter__GaugeIsDead();
     error Voter__GaugeIsAlive();
     error Voter__NotGauge();
-
 
     /*----------  EVENTS ------------------------------------------------*/
 
@@ -95,7 +132,14 @@ contract Voter is IVoter, ReentrancyGaurd, Ownable {
 
     /*----------  FUNCTIONS  --------------------------------------------*/
 
-    constructor(address _VTOKEN, address _OTOKEN, address  _gaugefactory, address _bribefactory) {
+    /**
+     * @notice construct a voter contract 
+     * @param _VTOKEN VTOKEN address which is used to get voting power
+     * @param _OTOKEN OTOKEN address which is distributed to gauges for rewards
+     * @param _gaugefactory GaugeFactory address which is used to create gauges
+     * @param _bribefactory BribeFactory address which is used to create bribes
+     */
+    constructor(address _VTOKEN, address _OTOKEN, address _gaugefactory, address _bribefactory) {
         VTOKEN = _VTOKEN;
         OTOKEN = _OTOKEN;
         gaugefactory = _gaugefactory;
@@ -120,9 +164,9 @@ contract Voter is IVoter, ReentrancyGaurd, Ownable {
 
     /**
      * @notice Allocates voting power for msg.sender to input plugins based on input weights. Will update bribe balances
-     *         to track voting rewards. Makes users voting weight nonzero. Can only be called once per epoch.
-     * @param _plugins 
-     * @param _weights 
+     *         to track voting rewards. Makes users voting weight nonzero. Can only be called once per epoch. 
+     * @param _plugins list of plugins to vote on
+     * @param _weights list of weights corresponding to plugins
      */
     function vote(address[] calldata _plugins, uint256[] calldata _weights) 
         external 
@@ -133,24 +177,40 @@ contract Voter is IVoter, ReentrancyGaurd, Ownable {
         _vote(msg.sender, _plugins, _weights);
     }
 
+    /**
+     * @notice Claims rewards for msg.sender from list of gauges.
+     * @param _gauges list of gauges to claim rewards from
+     */
     function claimRewards(address[] memory _gauges) external {
         for (uint i = 0; i < _gauges.length; i++) {
             IGauge(_gauges[i]).getReward(msg.sender);
         }
     }
 
+    /**
+     * @notice Claims rewards for msg.sender from list of bribes.
+     * @param _bribes list of bribes to claim rewards from
+     */
     function claimBribes(address[] memory _bribes) external {
         for (uint i = 0; i < _bribes.length; i++) {
-            IBribe(_bribes[i]).getRewardForOwner(msg.sender);
+            IBribe(_bribes[i]).getReward(msg.sender);
         }
     }
 
+    /**
+     * @notice Claims voting rewards for each plugin and distributes it to corresponding bribe contracts
+     * @param _plugins list of plugins to claim rewards and distribute from
+     */
     function distributeToBribes(address[] memory _plugins) external {
         for (uint i = 0; i < _plugins.length; i++) {
             IPlugin(_plugins[i]).claimAndDistribute();
         }
     }
 
+    /**
+     * @notice Distributes OTOKEN to _gauge, notifies gauge contract to start distributing OTOKEN to plugin depositors.
+     * @param _gauge gauge to distribute OTOKEN to
+     */
     function distribute(address _gauge) public nonReentrant {
         IMinter(minter).update_period();
         _updateFor(_gauge); // should set claimable to 0 if killed
@@ -158,27 +218,39 @@ contract Voter is IVoter, ReentrancyGaurd, Ownable {
         if (_claimable > IGauge(_gauge).left(OTOKEN) && _claimable / DURATION > 0) {
             claimable[_gauge] = 0;
             IGauge(_gauge).notifyRewardAmount(OTOKEN, _claimable);
-            emit DistributeReward(msg.sender, _gauge, _claimable);
+            emit Voter__DistributeReward(msg.sender, _gauge, _claimable);
         }
     }
 
+    /**
+     * @notice Distributes OTOKEN to gauges from start to finish
+     * @param start starting index of gauges to distribute to
+     * @param finish ending index of gauges to distribute to
+     */
     function distribute(uint start, uint finish) public {
         for (uint x = start; x < finish; x++) {
             distribute(gauges[plugins[x]]);
         }
     }
 
+    /**
+     * @notice Distributes OTOKEN to all gauges
+     */
     function distro() external {
         distribute(0, plugins.length);
     }
 
+    /**
+     * @notice For the minter to notify the voter contract of the amount of OTOKEN to distribute
+     * @param amount amount of OTOKEN to distribute
+     */
     function notifyRewardAmount(uint amount) external {
         _safeTransferFrom(OTOKEN, msg.sender, address(this), amount); // transfer the distro in
         uint256 _ratio = amount * 1e18 / totalWeight; // 1e18 adjustment is removed during claim
         if (_ratio > 0) {
             index += _ratio;
         }
-        emit NotifyReward(msg.sender, OTOKEN, amount);
+        emit Voter__NotifyReward(msg.sender, OTOKEN, amount);
     }
 
     function updateFor(address[] memory _gauges) external {
@@ -236,7 +308,7 @@ contract Voter is IVoter, ReentrancyGaurd, Ownable {
         isAlive[_gauge] = true;
         _updateFor(_gauge);
         plugins.push(_plugin);
-        emit GaugeCreated(msg.sender, _plugin, _gauge, _bribe); 
+        emit Voter__GaugeCreated(msg.sender, _plugin, _gauge, _bribe); 
         return _gauge;
     }
 
@@ -247,7 +319,7 @@ contract Voter is IVoter, ReentrancyGaurd, Ownable {
         if (!isAlive[_gauge]) revert Voter__GaugeIsDead();
         isAlive[_gauge] = false;
         claimable[_gauge] = 0;
-        emit GaugeKilled(_gauge);
+        emit Voter__GaugeKilled(_gauge);
     }
 
     function reviveGauge(address _gauge) 
@@ -256,25 +328,25 @@ contract Voter is IVoter, ReentrancyGaurd, Ownable {
     {
         if (isAlive[_gauge]) revert Voter__GaugeIsAlive();
         isAlive[_gauge] = true;
-        emit GaugeRevived(_gauge);
+        emit Voter__GaugeRevived(_gauge);
     }
 
     function setTreasury(address _treasury) 
         external 
         onlyOwner 
-        nonZeroAddress
+        nonZeroAddress(_treasury)
     {
         treasury = _treasury;
-        emit TreasurySet(_treasury);
+        emit Voter__TreasurySet(_treasury);
     }
 
     function setTeam(address _team) 
         external 
         onlyOwner 
-        nonZeroAddress
+        nonZeroAddress(_team)
     {
         team = _team;
-        emit TeamSet(_team);
+        emit Voter__TeamSet(_team);
     }
 
     function addBribeReward(address _bribe, address _rewardToken) 
@@ -283,7 +355,7 @@ contract Voter is IVoter, ReentrancyGaurd, Ownable {
         nonZeroAddress(_rewardToken)
     {
         IBribe(_bribe).addReward(_rewardToken);
-        emit BribeRewardAdded(_bribe, _rewardToken);
+        emit Voter__BribeRewardAdded(_bribe, _rewardToken);
     }
 
     function emitDeposit(address account, uint amount) 
@@ -291,12 +363,12 @@ contract Voter is IVoter, ReentrancyGaurd, Ownable {
     {
         if (!isGauge[msg.sender]) revert Voter__NotGauge();
         if (!isAlive[msg.sender]) revert Voter__GaugeIsDead();
-        emit Deposit(pluginForGauge[msg.sender], msg.sender, account, amount);
+        emit Voter__Deposit(pluginForGauge[msg.sender], msg.sender, account, amount);
     }
 
     function emitWithdraw(address account, uint amount) external {
         if (!isGauge[msg.sender]) revert Voter__NotGauge();
-        emit Withdraw(pluginForGauge[msg.sender], msg.sender, account, amount);
+        emit Voter__Withdraw(pluginForGauge[msg.sender], msg.sender, account, amount);
     }
 
     function _reset(address account) internal {
@@ -314,7 +386,7 @@ contract Voter is IVoter, ReentrancyGaurd, Ownable {
                 votes[account][_plugin] -= _votes;
                 IBribe(bribes[_plugin])._withdraw(IBribe(bribes[_plugin]).balanceOf(account), account);
                 _totalWeight += _votes;
-                emit Abstained(account, _votes);
+                emit Voter__Abstained(account, _votes);
             }
         }
         totalWeight -= uint256(_totalWeight);
@@ -355,7 +427,7 @@ contract Voter is IVoter, ReentrancyGaurd, Ownable {
                 IBribe(bribes[_plugin])._deposit(uint256(_pluginWeight), account); 
                 _usedWeight += _pluginWeight;
                 _totalWeight += _pluginWeight;
-                emit Voted(account, _pluginWeight);
+                emit Voter__Voted(account, _pluginWeight);
             }
         }
 

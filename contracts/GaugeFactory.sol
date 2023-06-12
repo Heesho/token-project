@@ -4,7 +4,12 @@ pragma solidity 0.8.19;
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
-import 'contracts/interfaces/IVoter.sol';
+
+interface IVoter {
+    function distribute(address _gauge) external;
+    function emitDeposit(address account, uint amount) external;
+    function emitWithdraw(address account, uint amount) external;
+}
 
 /**
  * @title Gauge
@@ -206,7 +211,7 @@ contract Gauge is ReentrancyGuard {
         if (isRewardToken[_rewardsToken]) revert Gauge__RewardTokenAlreadyAdded();
         rewardTokens.push(_rewardsToken);
         isRewardToken[_rewardsToken] = true;
-        emit RewardAdded(_rewardsToken);
+        emit Gauge__RewardAdded(_rewardsToken);
     }
 
     /*----------  VIEW FUNCTIONS  ---------------------------------------*/
