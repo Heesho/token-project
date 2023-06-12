@@ -56,7 +56,7 @@ contract VTOKENRewarder is ReentrancyGuard {
 
     event VTOKENRewarder__RewardAdded(address indexed rewardToken);
     event VTOKENRewarder__RewardNotified(address indexed rewardToken, uint256 reward);
-    event VTOKENRewarder__Staked(address indexed user, uint256 amount);
+    event VTOKENRewarder__Deposited(address indexed user, uint256 amount);
     event VTOKENRewarder__Withdrawn(address indexed user, uint256 amount);
     event VTOKENRewarder__RewardPaid(address indexed user, address indexed rewardsToken, uint256 reward);
 
@@ -84,6 +84,10 @@ contract VTOKENRewarder is ReentrancyGuard {
 
     /*----------  FUNCTIONS  --------------------------------------------*/
 
+    /**
+     * @notice Constructs a new VTOKENRewarder contract.
+     * @param _VTOKEN the address of the VTOKEN contract.
+     */
     constructor(address _VTOKEN) {
         VTOKEN = _VTOKEN;
     }
@@ -152,7 +156,7 @@ contract VTOKENRewarder is ReentrancyGuard {
     {
         _totalSupply = _totalSupply + amount;
         _balances[account] = _balances[account] + amount;
-        emit VTOKENRewarder__Staked(account, amount);
+        emit VTOKENRewarder__Deposited(account, amount);
     }
 
     /**
@@ -171,6 +175,10 @@ contract VTOKENRewarder is ReentrancyGuard {
         emit VTOKENRewarder__Withdrawn(account, amount);
     }
 
+    /**
+     * @notice Adds a reward token for distribution. Only VTOKEN contract can call this function.
+     * @param _rewardsToken the reward token to add
+     */
     function addReward(address _rewardsToken) 
         external
         onlyVTOKEN(msg.sender)
@@ -184,12 +192,9 @@ contract VTOKENRewarder is ReentrancyGuard {
     /*----------  VIEW FUNCTIONS  ---------------------------------------*/
 
     function left(address _rewardsToken) external view returns (uint256 leftover) {
-        if (block.timestamp >= rewardData[_rewardsToken].periodFinish) {
-            leftover = 0;
-        } else {
-            uint256 remaining = rewardData[_rewardsToken].periodFinish - block.timestamp;
-            leftover = remaining * rewardData[_rewardsToken].rewardRate;
-        }
+        if (block.timestamp >= rewardData[_rewardsToken].periodFinish) return 0;
+        uint256 remaining = rewardData[_rewardsToken].periodFinish - block.timestamp;
+        return remaining * rewardData[_rewardsToken].rewardRate;
     }
 
     function totalSupply() external view returns (uint256) {
@@ -209,9 +214,7 @@ contract VTOKENRewarder is ReentrancyGuard {
     }
 
     function rewardPerToken(address _rewardsToken) public view returns (uint256) {
-        if (_totalSupply == 0) {
-            return rewardData[_rewardsToken].rewardPerTokenStored;
-        }
+        if (_totalSupply == 0) return rewardData[_rewardsToken].rewardPerTokenStored;
         return
             rewardData[_rewardsToken].rewardPerTokenStored + ((lastTimeRewardApplicable(_rewardsToken) - rewardData[_rewardsToken].lastUpdateTime) 
             * rewardData[_rewardsToken].rewardRate * 1e18 / _totalSupply);
