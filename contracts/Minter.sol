@@ -5,20 +5,9 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
-
-interface ITOKEN {
-    function FEES() external view returns (address);
-    function totalSupply() external view returns (uint);
-}
-
-interface IVoter {
-    function notifyRewardAmount(uint amount) external;
-}
-
-interface IOTOKEN {
-    function mint(address account, uint amount) external returns (bool);
-}
-
+import "contracts/interfaces/ITOKEN.sol";
+import "contracts/interfaces/IOTOKEN.sol";
+import "contracts/interfaces/IVoter.sol";
 
 contract Minter is Ownable {
     using SafeERC20 for IERC20;

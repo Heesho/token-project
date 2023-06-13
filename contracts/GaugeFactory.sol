@@ -4,12 +4,7 @@ pragma solidity 0.8.19;
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
-
-interface IVoter {
-    function distribute(address _gauge) external;
-    function emitDeposit(address account, uint amount) external;
-    function emitWithdraw(address account, uint amount) external;
-}
+import "contracts/interfaces/IVoter.sol";
 
 /**
  * @title Gauge

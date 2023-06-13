@@ -4,11 +4,12 @@ pragma solidity 0.8.19;
 import '@openzeppelin/contracts/interfaces/IERC4626.sol';
 import 'contracts/Plugin.sol';
 
-interface IERC4626Mock_Plugin {} {
+interface IERC4626Mock {
     function price() external view returns (uint256);
 }
 
 contract ERC4626Mock_Plugin is Plugin {
+    using SafeERC20 for IERC20;
 
     /*----------  STATE VARIABLES  --------------------------------------*/
     
@@ -37,56 +38,62 @@ contract ERC4626Mock_Plugin is Plugin {
     }
 
     function depositFor(address account, uint256 amount) 
-        external 
+        public 
         override 
     {
         super.depositFor(account, amount);
-        underlying.approve(address(vault), 0);
-        underlying.approve(address(vault), amount);
+        IERC20(getUnderlyingAddress()).approve(address(vault), 0);
+        IERC20(getUnderlyingAddress()).approve(address(vault), amount);
         vault.deposit(amount, address(this));
     }
 
     function withdrawTo(address account, uint256 amount) 
-        external 
+        public 
         override 
     {
-        vault.withdraw(amount, address(this));
+        vault.withdraw(amount, address(this), address(this));
         super.withdrawTo(account, amount);
     }
 
     function claimAndDistribute() 
-        external 
+        public 
         override 
     {
         super.claimAndDistribute();
 
         uint256 shares = vault.balanceOf(address(this));
         uint256 assets = vault.convertToAssets(shares);
-        uint256 yield = assets - _totalSupply;
-        address treasury = IVoter(voter).treasury();
+        uint256 yield = assets - totalSupply();
+        address treasury = IVoter(getVoter()).treasury();
 
-        uint256 fee = yield * FEE / DIVISOR;
-        IERC20(vault).safeTransfer(treasury, fee);
-        IERC20(vault).safeApprove(bribe, 0);
-        IERC20(vault).safeApprove(bribe, yield - fee);
-        IBribe(bribe).notifyRewardAmount(vault, yield - fee);
+        uint256 fee = yield * getFee() / getDivisor();
+        IERC20(address(vault)).safeTransfer(treasury, fee);
+        IERC20(address(vault)).safeApprove(getBribe(), 0);
+        IERC20(address(vault)).safeApprove(getBribe(), yield - fee);
+        IBribe(getBribe()).notifyRewardAmount(address(vault), yield - fee);
+    }
+
+    /*----------  RESTRICTED FUNCTIONS  ---------------------------------*/
+
+    function appendString(string memory _a, string memory _b, string memory _c) internal pure returns (string memory)  {
+        return string(abi.encodePacked(_a, _b, _c));
     }
 
     /*----------  VIEW FUNCTIONS  ---------------------------------------*/
 
-    function getUnderlyingName() external view override returns (string memory) {
-        return underlying.name() + " in " + vault.name();
+    function getUnderlyingName() public view override returns (string memory) {
+        return appendString(IERC20Metadata(getUnderlyingAddress()).name(), " in ", vault.name());
     }
 
-    function getUnderlyingSymbol() external view override returns (string memory) {
-        return underlying.symbol() + " in " + vault.symbol();
+    function getUnderlyingSymbol() public view override returns (string memory) {
+        return appendString(IERC20Metadata(getUnderlyingAddress()).symbol(), " in ", vault.symbol());
     }
 
-    function getPrice() external view override returns (uint256) {
-        return IERC4626Mock_Plugin(address(vault)).price();
+    function getPrice() public view override returns (uint256) {
+        return IERC4626Mock(address(vault)).price();
     }
 
-    function getVault() external view override returns (address) {
+    function getVault() public view returns (address) {
         return address(vault);
     }
     

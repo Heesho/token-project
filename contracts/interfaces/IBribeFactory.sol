@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-interface IVTOKEN {
+interface IBribeFactory {
     /*----------  FUNCTIONS  --------------------------------------------*/
     /*----------  RESTRICTED FUNCTIONS  ---------------------------------*/
+    function createBribe(address voter) external returns (address);
     /*----------  VIEW FUNCTIONS  ---------------------------------------*/
-    function balanceOf(address account) external view returns (uint256);
-    function balanceOfTOKEN(address account) external view returns (uint256);
 }

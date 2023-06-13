@@ -4,19 +4,9 @@ pragma solidity 0.8.19;
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-
-interface IGauge {
-    function _deposit(address account, uint256 amount) external;
-    function _withdraw(address account, uint256 amount) external;
-}
-
-interface IBribe {
-    function notifyRewardAmount(address token, uint amount) external;
-}
-
-interface IVoter {
-    function treasury() external view returns (address);
-}
+import "contracts/interfaces/IGauge.sol";
+import "contracts/interfaces/IBribe.sol";
+import "contracts/interfaces/IVoter.sol";
 
 abstract contract Plugin is ReentrancyGuard {
     using SafeERC20 for IERC20Metadata;
@@ -82,7 +72,7 @@ abstract contract Plugin is ReentrancyGuard {
     }
 
     function depositFor(address account, uint256 amount) 
-        external
+        public
         virtual
         nonReentrant
         nonZeroInput(amount)
@@ -95,7 +85,7 @@ abstract contract Plugin is ReentrancyGuard {
     }
 
     function withdrawTo(address account, uint256 amount)
-        external
+        public
         virtual
         nonReentrant
         nonZeroInput(amount)
@@ -107,7 +97,7 @@ abstract contract Plugin is ReentrancyGuard {
         underlying.safeTransfer(account, amount);
     }
 
-    function claimAndDistribute() external virtual nonReentrant {
+    function claimAndDistribute() public virtual nonReentrant {
         emit Plugin__ClaimedAnDistributed();
     }
 
@@ -123,51 +113,62 @@ abstract contract Plugin is ReentrancyGuard {
 
     /*----------  VIEW FUNCTIONS  ---------------------------------------*/
 
-    function balanceOf(address account) external view returns (uint256) {
+    function balanceOf(address account) public view returns (uint256) {
         return _balances[account];
     }
 
-    function totalSupply() external view returns (uint256) {
+    function totalSupply() public view returns (uint256) {
         return _totalSupply;
     }
 
-    function getUnderlyingName() external view virtual returns (string memory) {
+    function getUnderlyingName() public view virtual returns (string memory) {
         return underlying.name();
     }
 
-    function getUnderlyingSymbol() external view virtual returns (string memory) {
+    function getUnderlyingSymbol() public view virtual returns (string memory) {
         return underlying.symbol();
     }
 
-    function getUnderlyingAddress() external view returns (address) {
+    function getUnderlyingAddress() public view virtual returns (address) {
         return address(underlying);
     }
 
-    function getProtocol() external view virtual returns (string memory) {
+    function getUnderlyingDecimals() public view virtual returns (uint8) {
+        return underlying.decimals();
+    }
+
+    function getProtocol() public view virtual returns (string memory) {
         return protocol;
     }
 
-    function getVoter() external view returns (address) {
+    function getVoter() public view returns (address) {
         return voter;
     }
 
-    function getGauge() external view returns (address) {
+    function getGauge() public view returns (address) {
         return gauge;
     }
 
-    function getBribe() external view returns (address) {
+    function getBribe() public view returns (address) {
         return bribe;
     }
 
-    function getTokensInUnderlying() external view virtual returns (address[] memory) {
+    function getTokensInUnderlying() public view virtual returns (address[] memory) {
         return tokensInUnderlying;
     }
 
-    function getBribeTokens() external view returns (address[] memory) {
+    function getBribeTokens() public view returns (address[] memory) {
         return bribeTokens;
     }
 
-    function getPrice() external view virtual returns (uint256)  {}
+    function getPrice() public view virtual returns (uint256)  {}
 
+    function getFee() public pure returns (uint256) {
+        return FEE;
+    }
+
+    function getDivisor() public pure returns (uint256) {
+        return DIVISOR;
+    }
 
 }

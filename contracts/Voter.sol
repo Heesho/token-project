@@ -5,44 +5,13 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-
-interface IPlugin {
-    function claimAndDistribute() external;
-    function setGauge(address gauge) external;
-    function setBribe(address bribe) external;
-    function getBribeTokens() external view returns (address[] memory);
-}
-
-interface IGauge {
-    function getReward(address account) external;
-    function left(address token) external view returns (uint);
-    function notifyRewardAmount(address token, uint amount) external;
-    function addReward(address rewardToken) external;
-}
-
-interface IBribe {
-    function getReward(address account) external;
-    function addReward(address rewardToken) external;
-    function balanceOf(address account) external view returns (uint256);
-    function _deposit(uint amount, address account) external;
-    function _withdraw(uint amount, address account) external;
-}
-
-interface IMinter {
-    function update_period() external returns (uint256);
-}
-
-interface IGaugeFactory {
-    function createGauge(address voter, address token) external returns (address);
-}
-
-interface IBribeFactory {
-    function createBribe(address voter) external returns (address);
-}
-
-interface IVTOKEN {
-    function balanceOf(address account) external view returns (uint256);
-}
+import "contracts/interfaces/IVTOKEN.sol";
+import "contracts/interfaces/IPlugin.sol";
+import "contracts/interfaces/IGauge.sol";
+import "contracts/interfaces/IBribe.sol";
+import "contracts/interfaces/IMinter.sol";
+import "contracts/interfaces/IGaugeFactory.sol";
+import "contracts/interfaces/IBribeFactory.sol";
 
 /**
  * @title Voter

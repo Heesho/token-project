@@ -6,26 +6,11 @@ import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
-interface IOTOKEN {
-    function burnFrom(address account, uint256 amount) external;
-}
-
-interface IVTOKEN {
-    function balanceOfTOKEN(address account) external view returns (uint256);
-}
-
-interface IOTOKENFactory {
-    function createOToken(address _treasury) external returns (address);
-}
-
-interface IVTOKENFactory {
-    function createVToken(address _TOKEN, address _OTOKEN, address _VTOKENRewarderFactory) external returns (address, address);
-}
-
-interface ITOKENFeesFactory {
-    function createTokenFees(address _rewarder, address _TOKEN, address _BASE, address _OTOKEN) external returns (address);
-}
+import "contracts/interfaces/IOTOKEN.sol";
+import "contracts/interfaces/IVTOKEN.sol";
+import "contracts/interfaces/IOTOKENFactory.sol";
+import "contracts/interfaces/IVTOKENFactory.sol";
+import "contracts/interfaces/ITOKENFeesFactory.sol";
 
 /** 
  * @title TOKEN Bonding Curve
@@ -338,19 +323,19 @@ contract TOKEN is ERC20, ReentrancyGuard, Ownable {
         return FLOOR_PRICE;
     }
 
-    function getMarketPrice() public view returns (uint256) {
+    function getMarketPrice() external view returns (uint256) {
         return ((mrvBASE + mrrBASE) * PRECISION) / mrrTOKEN;
     }
 
-    function getOTokenPrice() public view returns (uint256) {
+    function getOTokenPrice() external view returns (uint256) {
         return getMarketPrice() - getFloorPrice();
     }
 
-    function getMaxSell() public view returns (uint256) {
+    function getMaxSell() external view returns (uint256) {
         return (mrrTOKEN * mrrBASE / mrvBASE) * DIVISOR / (DIVISOR - PROTOCOL_FEE);
     }
 
-    function getTotalValueLocked() public view returns (uint256) {
+    function getTotalValueLocked() external view returns (uint256) {
         return frBASE + mrrBASE + (mrrTOKEN * getMarketPrice() / PRECISION);
     }
 
