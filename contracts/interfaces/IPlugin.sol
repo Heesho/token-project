@@ -16,7 +16,7 @@ interface IPlugin {
     function getProtocol() external view returns (string memory);
     function getTokensInUnderlying() external view returns (address[] memory);
     function getBribeTokens() external view returns (address[] memory);
-    function getUnderlyingPrice() external view returns (uint256);
+    function getPrice() external view returns (uint256);
     function getUnderlyingDecimals() external view returns (uint8);
 }
 

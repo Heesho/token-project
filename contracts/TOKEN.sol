@@ -112,12 +112,14 @@ contract TOKEN is ERC20, ReentrancyGuard, Ownable {
      *         The initial supply of TOKEN will be minted to the bonding curve with an equal amount of virtual BASE.
      * @dev The BASE must be an 18 decimal ERC20 token, otherwise the bonding curve will not function correctly
      * @param _BASE The ERC20 in the bonding curve reserves
-     * @param _treasury The treasury address for protocol revenue
      * @param _supplyTOKEN The initial supply of TOKEN to mint to the bonding curve
+     * @param _OTOKENFactory The factory contract to create the OTOKEN
+     * @param _VTOKENFactory The factory contract to create the VTOKEN
+     * @param _VTOKENRewarderFactory The factory contract to create the VTOKENRewarder
+     * @param _TOKENFeesFactory The factory contract to create the TOKENFees
      */
     constructor(
         address _BASE, 
-        address _treasury, 
         uint256 _supplyTOKEN, 
         address _OTOKENFactory, 
         address _VTOKENFactory, 
@@ -125,16 +127,16 @@ contract TOKEN is ERC20, ReentrancyGuard, Ownable {
         address _TOKENFeesFactory
     )
         ERC20('TOKEN', 'TOKEN')
-        nonZeroAddress(_treasury)
+        nonZeroAddress(_BASE)
         nonZeroInput(_supplyTOKEN)
     {
         if (IERC20Metadata(_BASE).decimals() != DECIMALS) revert TOKEN__InvalidDecimals();
         BASE = IERC20(_BASE);
-        treasury = _treasury;
+        treasury = msg.sender;
         mrvBASE = _supplyTOKEN;
         mrrTOKEN = _supplyTOKEN;
-        OTOKEN = IOTOKENFactory(_OTOKENFactory).createOToken(_treasury);
-        (address vToken, address rewarder) = IVTOKENFactory(_VTOKENFactory).createVToken(address(this), OTOKEN, _VTOKENRewarderFactory);
+        OTOKEN = IOTOKENFactory(_OTOKENFactory).createOToken(treasury);
+        (address vToken, address rewarder) = IVTOKENFactory(_VTOKENFactory).createVToken(address(this), OTOKEN, _VTOKENRewarderFactory, treasury);
         VTOKEN = vToken;
         FEES = ITOKENFeesFactory(_TOKENFeesFactory).createTokenFees(rewarder, address(this), _BASE, OTOKEN);
         _mint(address(this), _supplyTOKEN);
@@ -323,7 +325,7 @@ contract TOKEN is ERC20, ReentrancyGuard, Ownable {
         return FLOOR_PRICE;
     }
 
-    function getMarketPrice() external view returns (uint256) {
+    function getMarketPrice() public view returns (uint256) {
         return ((mrvBASE + mrrBASE) * PRECISION) / mrrTOKEN;
     }
 

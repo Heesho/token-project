@@ -260,13 +260,13 @@ contract BribeFactory {
         require(_voter != address(0), "!Valid");
         if (_voter == address(0)) revert BribeFactory__InvalidZeroAddress();
         voter = _voter;
-        emit VoterSet(_voter);
+        emit BribeFactory__VoterSet(_voter);
     }
 
     function createBribe(address _voter) external onlyVoter returns (address) {
         Bribe lastBribe = new Bribe(_voter);
         last_bribe = address(lastBribe);
-        emit BribeCreated(last_bribe);
+        emit BribeFactory__BribeCreated(last_bribe);
         return last_bribe;
     }
 }

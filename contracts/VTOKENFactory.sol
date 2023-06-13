@@ -77,7 +77,10 @@ contract VTOKEN is ERC20, ERC20Permit, ERC20Votes, ReentrancyGuard, Ownable {
      * @param _TOKEN address of TOKEN contract
      * @param _OTOKEN address of OTOKEN contract
      */
-    constructor(address _TOKEN, address _OTOKEN, address _VTOKENRewarderFactory) ERC20("VTOKEN", "VTOKEN") ERC20Permit("VTOKEN") {
+    constructor(address _TOKEN, address _OTOKEN, address _VTOKENRewarderFactory) 
+        ERC20("VTOKEN", "VTOKEN")
+        ERC20Permit("VTOKEN")
+    {
         TOKEN = IERC20(_TOKEN);
         OTOKEN = IERC20(_OTOKEN);
         rewarder = IVTOKENRewarderFactory(_VTOKENRewarderFactory).createVTokenRewarder(address(this));
@@ -233,8 +236,9 @@ contract VTOKENFactory {
 
     constructor() {}
 
-    function createVToken(address _TOKEN, address _OTOKEN, address _VTOKENRewarderFactory) external returns (address, address) {
+    function createVToken(address _TOKEN, address _OTOKEN, address _VTOKENRewarderFactory, address _treasury) external returns (address, address) {
         address vToken = address(new VTOKEN(_TOKEN, _OTOKEN, _VTOKENRewarderFactory));
+        VTOKEN(vToken).transferOwnership(_treasury);
         emit VTOKENFactory__VTokenCreated(vToken);
         return (vToken, VTOKEN(vToken).rewarder());
     }

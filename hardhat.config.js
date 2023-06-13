@@ -28,7 +28,7 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
 
 module.exports = {
   solidity: {
-    version: "0.8.13",
+    version: "0.8.19",
     settings: {
       optimizer: {
         enabled: true,
@@ -39,10 +39,10 @@ module.exports = {
   networks: {
     hardhat: {
       // Fantom
-      chainId: 250,
-      forking: {
-        url: "https://rpc.ftm.tools",
-      },
+      // chainId: 250,
+      // forking: {
+      //   url: "https://rpc.ftm.tools",
+      // },
       // Canto
       // chainId: 7700,
       // forking: {
@@ -84,7 +84,7 @@ module.exports = {
   },
   paths: {
     sources: "./contracts",
-    tests: "./tests/fantom",
+    tests: "./tests/local",
     cache: "./cache",
     artifacts: "./artifacts",
   },

@@ -29,8 +29,8 @@ contract OTOKEN is ERC20, ERC20Burnable {
 
     /*----------  MODIFIERS  --------------------------------------------*/
 
-    modifier onlyMinter(address account) {
-        if (account != minter) {
+    modifier onlyMinter() {
+        if (msg.sender != minter) {
             revert OTOKEN__UnauthorisedMinter();
         }
         _;
@@ -50,7 +50,7 @@ contract OTOKEN is ERC20, ERC20Burnable {
      * @param treasury address of the treasurywhich receives the initial supply and minting rights
      */
     constructor(address treasury) ERC20("OTOKEN", "OTOKEN") {
-        _mint(treasury, 10 * 1e6 * 1e18);
+        _mint(treasury, 1000 * 1e18);
         minter = treasury;
     }
 
@@ -63,7 +63,7 @@ contract OTOKEN is ERC20, ERC20Burnable {
     function setMinter(address _minter) 
         external 
         invalidZeroAddress(_minter)
-        onlyMinter(msg.sender)
+        onlyMinter
     {
         minter = _minter;
         emit OTOKEN__MinterSet(_minter);
@@ -77,7 +77,7 @@ contract OTOKEN is ERC20, ERC20Burnable {
      */
     function mint(address to, uint256 amount) 
         external
-        onlyMinter(msg.sender)
+        onlyMinter
         returns (bool) 
     {
         _mint(to, amount);

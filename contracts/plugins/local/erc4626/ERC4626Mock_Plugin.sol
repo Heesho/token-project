@@ -19,6 +19,7 @@ contract ERC4626Mock_Plugin is Plugin {
 
     constructor(
         address _underlying, 
+        address _vault,
         address _OTOKEN, 
         address _voter, 
         address[] memory _tokensInUnderlying, 
@@ -34,7 +35,7 @@ contract ERC4626Mock_Plugin is Plugin {
             _protocol
         )
     {
-        vault = IERC4626(_underlying);
+        vault = IERC4626(_vault);
     }
 
     function depositFor(address account, uint256 amount) 

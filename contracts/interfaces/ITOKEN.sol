@@ -5,6 +5,7 @@ interface ITOKEN {
     /*----------  FUNCTIONS  --------------------------------------------*/
     /*----------  RESTRICTED FUNCTIONS  ---------------------------------*/
     /*----------  VIEW FUNCTIONS  ---------------------------------------*/
+    function totalSupply() external view returns (uint256);
     function frBASE() external view returns (uint256);
     function mrvBASE() external view returns (uint256);
     function mrrBASE() external view returns (uint256);

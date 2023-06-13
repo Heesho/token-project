@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.13;
+pragma solidity 0.8.19;
 
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -251,7 +251,7 @@ contract Voter is ReentrancyGuard, Ownable {
         minter = _minter;
     }
 
-    function createGauge(address _plugin) 
+    function addPlugin(address _plugin) 
         external 
         onlyGov 
         returns (address) 
