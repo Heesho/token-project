@@ -5,6 +5,19 @@ import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
+interface IGauge {
+    function _deposit(address account, uint256 amount) external;
+    function _withdraw(address account, uint256 amount) external;
+}
+
+interface IBribe {
+    function notifyRewardAmount(address token, uint amount) external;
+}
+
+interface IVoter {
+    function treasury() external view returns (address);
+}
+
 abstract contract Plugin is ReentrancyGuard {
     using SafeERC20 for IERC20Metadata;
 
@@ -68,11 +81,35 @@ abstract contract Plugin is ReentrancyGuard {
         protocol = _protocol;
     }
 
-    function depositFor(address account, uint256 amount) external nonReentrant nonZeroInput(amount) returns (bool) {}
+    function depositFor(address account, uint256 amount) 
+        external
+        virtual
+        nonReentrant
+        nonZeroInput(amount)
+    {
+        _totalSupply = _totalSupply + amount;
+        _balances[account] = _balances[account] + amount;
+        emit Plugin__Deposited(account, amount);
+        underlying.safeTransferFrom(msg.sender, address(this), amount);
+        IGauge(gauge)._deposit(account, amount);
+    }
 
-    function withdrawTo(address account, uint256 amount) external nonReentrant nonZeroInput(amount) returns (bool) {}
+    function withdrawTo(address account, uint256 amount)
+        external
+        virtual
+        nonReentrant
+        nonZeroInput(amount)
+    {
+        _totalSupply = _totalSupply - amount;
+        _balances[msg.sender] = _balances[msg.sender] - amount;
+        emit Plugin__Withdrawn(account, amount);
+        IGauge(gauge)._withdraw(account, amount);
+        underlying.safeTransfer(account, amount);
+    }
 
-    function claimAndDistribute() external nonReentrant {}
+    function claimAndDistribute() external virtual nonReentrant {
+        emit Plugin__ClaimedAnDistributed();
+    }
 
     /*----------  RESTRICTED FUNCTIONS  ---------------------------------*/
 
@@ -94,11 +131,11 @@ abstract contract Plugin is ReentrancyGuard {
         return _totalSupply;
     }
 
-    function getUnderlyingName() external view returns (string memory) {
+    function getUnderlyingName() external view virtual returns (string memory) {
         return underlying.name();
     }
 
-    function getUnderlyingSymbol() external view returns (string memory) {
+    function getUnderlyingSymbol() external view virtual returns (string memory) {
         return underlying.symbol();
     }
 
@@ -122,7 +159,7 @@ abstract contract Plugin is ReentrancyGuard {
         return bribe;
     }
 
-    function getTokensInUnderlying() external view returns (address[] memory) {
+    function getTokensInUnderlying() external view virtual returns (address[] memory) {
         return tokensInUnderlying;
     }
 
