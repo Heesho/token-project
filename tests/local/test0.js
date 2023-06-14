@@ -2696,10 +2696,6 @@ describe("test0", function () {
         await minter.connect(owner).setTeamRate(40);;
         await expect(minter.connect(user1).setTeamRate(60)).to.be.reverted;
     });
-    
-    
-
-
 
   });
   
