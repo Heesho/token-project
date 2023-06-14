@@ -111,11 +111,10 @@ contract Gauge is ReentrancyGuard {
      * @param account The account to claim rewards for.
      */
     function getReward(address account) 
-        external 
-        nonReentrant 
+        external  
         updateReward(account) 
     {
-        if (msg.sender != account || msg.sender != voter) revert Gauge__NotAuthorizedUser();
+        if (msg.sender != account && msg.sender != voter) revert Gauge__NotAuthorizedUser();
         IVoter(voter).distribute(address(this));
         for (uint i; i < rewardTokens.length; i++) {
             address _rewardsToken = rewardTokens[i];

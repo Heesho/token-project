@@ -66,7 +66,7 @@ contract TOKEN is ERC20, ReentrancyGuard, Ownable {
 
     // Lending state variables
     uint256 public debtTotal;                               // total debt in BASE owed to the bonding curve
-    mapping(address account => uint256 debt) public debts;  // debt in BASE owed to the bonding curve per account
+    mapping(address => uint256) public debts;               // debt in BASE owed to the bonding curve per account
 
     /*----------  ERRORS ------------------------------------------------*/
 
@@ -160,7 +160,7 @@ contract TOKEN is ERC20, ReentrancyGuard, Ownable {
     {
         uint256 feeBASE = amountBase * PROTOCOL_FEE / DIVISOR;
         uint256 newMrBASE = (mrvBASE + mrrBASE) + amountBase - feeBASE;
-        uint256 newMrTOKEN = (mrvBASE + mrrBASE) * mrrTOKEN / (newMrBASE);
+        uint256 newMrTOKEN = (mrvBASE + mrrBASE) * mrrTOKEN / newMrBASE;
         uint256 outTOKEN = mrrTOKEN - newMrTOKEN;
 
         if (outTOKEN < minToken) revert TOKEN__ExceedsSwapSlippageTolerance();
@@ -170,7 +170,6 @@ contract TOKEN is ERC20, ReentrancyGuard, Ownable {
 
         emit TOKEN__Buy(msg.sender, toAccount, amountBase);
 
-        transfer(toAccount, outTOKEN);
         if (provider != address(0)) {
             uint256 providerFee = feeBASE * PROVIDER_FEE / DIVISOR;
             BASE.safeTransferFrom(msg.sender, provider, providerFee);
@@ -179,6 +178,7 @@ contract TOKEN is ERC20, ReentrancyGuard, Ownable {
             BASE.safeTransferFrom(msg.sender, FEES, feeBASE);
         }
         IERC20(BASE).safeTransferFrom(msg.sender, address(this), amountBase - feeBASE);
+        IERC20(address(this)).safeTransfer(toAccount, outTOKEN);
         return true;
     }
 
@@ -198,9 +198,9 @@ contract TOKEN is ERC20, ReentrancyGuard, Ownable {
         nonExpiredSwap(expireTimestamp)
         returns (bool)
     {
+        if (amountToken > getMaxSell()) revert TOKEN__ExceedsSwapMarketReserves();
         uint256 feeTOKEN = amountToken * PROTOCOL_FEE / DIVISOR;
         uint256 newMrTOKEN = mrrTOKEN + amountToken - feeTOKEN;
-        if (newMrTOKEN > mrvBASE) revert TOKEN__ExceedsSwapMarketReserves();
         uint256 newMrBASE = (mrvBASE + mrrBASE) * mrrTOKEN / newMrTOKEN;
         uint256 outBASE = (mrvBASE + mrrBASE) - newMrBASE;
 
@@ -213,12 +213,12 @@ contract TOKEN is ERC20, ReentrancyGuard, Ownable {
 
         if (provider != address(0)) {
             uint256 providerFee = feeTOKEN * PROVIDER_FEE / DIVISOR;
-            transferFrom(msg.sender, provider, providerFee);
-            transferFrom(msg.sender, FEES, feeTOKEN - providerFee);
+            IERC20(address(this)).safeTransferFrom(msg.sender, provider, providerFee);
+            IERC20(address(this)).safeTransferFrom(msg.sender, FEES, feeTOKEN - providerFee);
         } else {
-            transferFrom(msg.sender, FEES, feeTOKEN);
+            IERC20(address(this)).safeTransferFrom(msg.sender, FEES, feeTOKEN);
         }
-        transferFrom(msg.sender, address(this), amountToken - feeTOKEN);
+        IERC20(address(this)).safeTransferFrom(msg.sender, address(this), amountToken - feeTOKEN);
         BASE.safeTransfer(toAccount, outBASE);
         return true;
     }
@@ -329,15 +329,15 @@ contract TOKEN is ERC20, ReentrancyGuard, Ownable {
         return ((mrvBASE + mrrBASE) * PRECISION) / mrrTOKEN;
     }
 
-    function getOTokenPrice() external view returns (uint256) {
+    function getOTokenPrice() public view returns (uint256) {
         return getMarketPrice() - getFloorPrice();
     }
 
-    function getMaxSell() external view returns (uint256) {
-        return (mrrTOKEN * mrrBASE / mrvBASE) * DIVISOR / (DIVISOR - PROTOCOL_FEE);
+    function getMaxSell() public view returns (uint256) {
+        return (mrrTOKEN * mrrBASE / mrvBASE);
     }
 
-    function getTotalValueLocked() external view returns (uint256) {
+    function getTotalValueLocked() public view returns (uint256) {
         return frBASE + mrrBASE + (mrrTOKEN * getMarketPrice() / PRECISION);
     }
 

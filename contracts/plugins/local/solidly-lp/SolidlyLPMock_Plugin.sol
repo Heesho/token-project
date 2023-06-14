@@ -6,7 +6,10 @@ import 'contracts/Plugin.sol';
 
 interface ISolidlyLPMock {
     function price() external view returns (uint256);
-    function claimFees() external;
+}
+
+interface IERC20Mock {
+    function mint(address _to, uint256 _amount) external;
 }
 
 contract SolidlyLPMock_Plugin is Plugin {
@@ -39,7 +42,9 @@ contract SolidlyLPMock_Plugin is Plugin {
         override 
     {
         super.claimAndDistribute();
-        ISolidlyLPMock(getUnderlyingAddress()).claimFees();
+        for (uint256 i = 0; i < getTokensInUnderlying().length; i++) {
+            IERC20Mock(getTokensInUnderlying()[i]).mint(address(this), 10);
+        }
         address treasury = IVoter(getVoter()).treasury();
         for (uint256 i = 0; i < getBribeTokens().length; i++) {
             address token = getBribeTokens()[i];

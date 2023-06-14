@@ -8,6 +8,10 @@ interface IERC4626Mock {
     function price() external view returns (uint256);
 }
 
+interface IERC20Mock {
+    function mint(address _to, uint256 _amount) external;
+}
+
 contract ERC4626Mock_Plugin is Plugin {
     using SafeERC20 for IERC20;
 
@@ -61,17 +65,19 @@ contract ERC4626Mock_Plugin is Plugin {
         override 
     {
         super.claimAndDistribute();
-
+        IERC20Mock(getUnderlyingAddress()).mint(address(vault), 10);
         uint256 shares = vault.balanceOf(address(this));
         uint256 assets = vault.convertToAssets(shares);
-        uint256 yield = assets - totalSupply();
-        address treasury = IVoter(getVoter()).treasury();
+        uint256 yield = vault.convertToShares(assets - totalSupply());
+        if (yield > 0) {
+            address treasury = IVoter(getVoter()).treasury();
 
-        uint256 fee = yield * getFee() / getDivisor();
-        IERC20(address(vault)).safeTransfer(treasury, fee);
-        IERC20(address(vault)).safeApprove(getBribe(), 0);
-        IERC20(address(vault)).safeApprove(getBribe(), yield - fee);
-        IBribe(getBribe()).notifyRewardAmount(address(vault), yield - fee);
+            uint256 fee = yield * getFee() / getDivisor();
+            IERC20(address(vault)).safeTransfer(treasury, fee);
+            IERC20(address(vault)).safeApprove(getBribe(), 0);
+            IERC20(address(vault)).safeApprove(getBribe(), yield - fee);
+            IBribe(getBribe()).notifyRewardAmount(address(vault), yield - fee);
+        }
     }
 
     /*----------  RESTRICTED FUNCTIONS  ---------------------------------*/

@@ -28,7 +28,7 @@ contract Minter is Ownable {
     IERC20 public immutable OTOKEN; // the token distruted to gauges as rewards
     IVoter public voter;            // the voting & gauge distribution system
 
-    uint public weekly = 100000 * 1e18; // represents a starting weekly emission of 100,000 OTOKEN (OTOKEN has 18 decimals)
+    uint public weekly = 100 * 1e18;    // represents a starting weekly emission of 100,000 OTOKEN (OTOKEN has 18 decimals)
     uint public active_period;          // the current period (week) that is active
 
     address internal initializer;   // the address that can initialize the contract (owner)
@@ -144,7 +144,7 @@ contract Minter is Ownable {
         external 
         onlyOwner 
     {
-        if (_growth > growth) revert Minter__GrowthRateTooHigh();
+        if (_growth > MAX_GROWTH_RATE) revert Minter__GrowthRateTooHigh();
         growth = _growth;
         emit Minter__GrowthSet(_growth);
     }
@@ -153,7 +153,7 @@ contract Minter is Ownable {
         external 
         onlyOwner 
     {
-        if (_teamRate > teamRate) revert Minter__TeamRateTooHigh();
+        if (_teamRate > MAX_TEAM_RATE) revert Minter__TeamRateTooHigh();
         teamRate = _teamRate;
         emit Minter__TeamRateSet(_teamRate);
     }

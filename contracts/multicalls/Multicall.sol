@@ -273,6 +273,7 @@ contract Multicall {
         uint256 oldMrTOKEN = ITOKEN(TOKEN).mrrTOKEN();
         output = oldMrTOKEN - (oldMrBASE * oldMrTOKEN / newMrBASE);
 
+
         return (
             output, 
             100 * (1e18 - (output * 1e18 / ((input - feeBASE) * 1e18 / ITOKEN(TOKEN).getMarketPrice()))), 
@@ -287,7 +288,7 @@ contract Multicall {
         return (
             output, 
             100 * (1e18 - (input * 1e18 / ((output - (output * FEE / DIVISOR)) * 1e18 / ITOKEN(TOKEN).getMarketPrice()))), 
-            (input - (input * FEE / DIVISOR)) * slippageTolerance / DIVISOR
+            ((output - (output * FEE / DIVISOR)) * 1e18 / ITOKEN(TOKEN).getMarketPrice()) * slippageTolerance / DIVISOR
         );
     }
 
@@ -295,7 +296,7 @@ contract Multicall {
         uint256 feeTOKEN = input * FEE / DIVISOR;
         uint256 oldMrTOKEN = ITOKEN(TOKEN).mrrTOKEN();
         uint256 newMrTOKEN = oldMrTOKEN + input - feeTOKEN;
-        if (newMrTOKEN <= ITOKEN(TOKEN).mrvBASE()) {
+        if (newMrTOKEN > ITOKEN(TOKEN).mrvBASE()) {
             return (0, 0, 0);
         }
 
@@ -310,17 +311,16 @@ contract Multicall {
     }
 
     function quoteSellOut(uint256 input, uint256 slippageTolerance) external view returns (uint256 output, uint256 slippage, uint256 minOutput) {
-        if (input <= ITOKEN(TOKEN).mrvBASE()) {
-            return (0, 0, 0);
-        }
-
         uint256 oldMrBASE = ITOKEN(TOKEN).mrvBASE() + ITOKEN(TOKEN).mrrBASE();
         output = DIVISOR * ((oldMrBASE * ITOKEN(TOKEN).mrrTOKEN() / (oldMrBASE - input)) - ITOKEN(TOKEN).mrrTOKEN()) / (DIVISOR - FEE);
+        if (output + ITOKEN(TOKEN).mrrTOKEN() > ITOKEN(TOKEN).mrvBASE()) {
+            return (0, 0, 0);
+        }
 
         return (
             output, 
             100 * (1e18 - (input * 1e18 / ((output - (output * FEE / DIVISOR)) * ITOKEN(TOKEN).getMarketPrice() / 1e18))), 
-            (input - input * FEE / DIVISOR) * slippageTolerance / DIVISOR
+            ((output - (output * FEE / DIVISOR)) * ITOKEN(TOKEN).getMarketPrice() / 1e18) * slippageTolerance / DIVISOR
         );
     }
 

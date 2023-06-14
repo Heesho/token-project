@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 interface IERC20Mock {
-    function mint(address _to, uint256 _amount) external view returns (uint256);
+    function mint(address _to, uint256 _amount) external;
 }
 
 contract SolidlyLPMock is ERC20 {
@@ -27,8 +27,4 @@ contract SolidlyLPMock is ERC20 {
         price = _price;
     }
 
-    function claimFees() external {
-        IERC20Mock(token0).mint(msg.sender, 10);
-        IERC20Mock(token1).mint(msg.sender, 10);
-    }
 }
