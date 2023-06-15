@@ -13,10 +13,11 @@ contract SolidlyLPMock is ERC20 {
     uint256 public price;
     
     constructor(string memory name, string memory symbol, address _token0, address _token1)
-        public
         ERC20(name, symbol)
     {
         price = 1e18;
+        token0 = _token0;
+        token1 = _token1;
     }
 
     function mint(address _to, uint256 _amount) public {

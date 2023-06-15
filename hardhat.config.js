@@ -11,6 +11,7 @@ const FTMSCAN_API_KEY = process.env.FTMSCAN_API_KEY || "";
 const ARBISCAN_API_KEY = process.env.ARBISCAN_API_KEY || "";
 const BSCSCAN_API_KEY = process.env.BSCSCAN_API_KEY || "";
 const MATICSCAN_API_KEY = process.env.MATICSCAN_API_KEY || "";
+const OPTIMISM_API_KEY = process.env.OPTIMISM_API_KEY || "";
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
@@ -66,6 +67,12 @@ module.exports = {
     //   chainId: 42161,
     //   accounts: [PRIVATE_KEY],
     // },
+    mainnet: {
+      url:'https://mainnet.optimism.io',
+      browserURL: "https://optimistic.etherscan.io",
+      chainId: 10,
+      accounts: [PRIVATE_KEY],
+    },
     // mainnet: {
     //   url:'https://bsc-dataseed.binance.org/',
     //   chainId: 56,
@@ -82,7 +89,8 @@ module.exports = {
       arbitrumOne: ARBISCAN_API_KEY,
       opera: FTMSCAN_API_KEY,
       bsc: BSCSCAN_API_KEY,
-      polygon: MATICSCAN_API_KEY
+      polygon: MATICSCAN_API_KEY,
+      optimisticEthereum: OPTIMISM_API_KEY
     }
   },
   paths: {
