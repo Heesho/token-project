@@ -8,6 +8,8 @@ import "contracts/interfaces/IGauge.sol";
 import "contracts/interfaces/IBribe.sol";
 import "contracts/interfaces/IVoter.sol";
 
+// add an emergency withdraw function?
+
 abstract contract Plugin is ReentrancyGuard {
     using SafeERC20 for IERC20Metadata;
 

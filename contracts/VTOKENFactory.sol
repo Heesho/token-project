@@ -14,6 +14,8 @@ import "contracts/interfaces/IOTOKEN.sol";
 import "contracts/interfaces/IVTOKENRewarder.sol";
 import "contracts/interfaces/IVTOKENRewarderFactory.sol";
 
+// add an emergency withdraw function?
+
 /**
  * @title VTOKEN
  * @author heesho
