@@ -266,62 +266,49 @@ contract Multicall {
         return IVoter(voter).plugins(index);
     }
 
-    function quoteBuyIn(uint256 input, uint256 slippageTolerance) external view returns (uint256 output, uint256 slippage, uint256 minOutput) {
+    function quoteBuyIn(uint256 input, uint256 slippageTolerance) external view returns (uint256 output, uint256 slippage, uint256 minOutput, uint256 autoMinOutput) {
         uint256 feeBASE = input * FEE / DIVISOR;
         uint256 oldMrBASE = ITOKEN(TOKEN).mrvBASE() + ITOKEN(TOKEN).mrrBASE();
         uint256 newMrBASE = oldMrBASE + input - feeBASE;
         uint256 oldMrTOKEN = ITOKEN(TOKEN).mrrTOKEN();
         output = oldMrTOKEN - (oldMrBASE * oldMrTOKEN / newMrBASE);
-
-
-        return (
-            output, 
-            100 * (1e18 - (output * 1e18 / ((input - feeBASE) * 1e18 / ITOKEN(TOKEN).getMarketPrice()))), 
-            ((input - feeBASE) * 1e18 / ITOKEN(TOKEN).getMarketPrice()) * slippageTolerance / DIVISOR
-        );
+        slippage = 100 * (1e18 - (output * ITOKEN(TOKEN).getMarketPrice() / input));
+        minOutput = (input * 1e18 / ITOKEN(TOKEN).getMarketPrice()) * slippageTolerance / DIVISOR;
+        autoMinOutput = (input * 1e18 / ITOKEN(TOKEN).getMarketPrice()) * ((DIVISOR * 1e18) - ((slippage + 1e18) * 100)) / (DIVISOR * 1e18);
     }
 
-    function quoteBuyOut(uint256 input, uint256 slippageTolerance) external view returns (uint256 output, uint256 slippage, uint256 minOutput) {
+    function quoteBuyOut(uint256 input, uint256 slippageTolerance) external view returns (uint256 output, uint256 slippage, uint256 minOutput, uint256 autoMinOutput) {
         uint256 oldMrBASE = ITOKEN(TOKEN).mrvBASE() + ITOKEN(TOKEN).mrrBASE();
         output = DIVISOR * ((oldMrBASE * ITOKEN(TOKEN).mrrTOKEN() / (ITOKEN(TOKEN).mrrTOKEN() - input)) - oldMrBASE) / (DIVISOR - FEE);
-
-        return (
-            output, 
-            100 * (1e18 - (input * 1e18 / ((output - (output * FEE / DIVISOR)) * 1e18 / ITOKEN(TOKEN).getMarketPrice()))), 
-            ((output - (output * FEE / DIVISOR)) * 1e18 / ITOKEN(TOKEN).getMarketPrice()) * slippageTolerance / DIVISOR
-        );
+        slippage = 100 * (1e18 - (input * ITOKEN(TOKEN).getMarketPrice() / output));
+        minOutput = input * slippageTolerance / DIVISOR;
+        autoMinOutput = input * ((DIVISOR * 1e18) - ((slippage + 1e18) * 100)) / (DIVISOR * 1e18);
     }
 
-    function quoteSellIn(uint256 input, uint256 slippageTolerance) external view returns (uint256 output, uint256 slippage, uint256 minOutput) {
+    function quoteSellIn(uint256 input, uint256 slippageTolerance) external view returns (uint256 output, uint256 slippage, uint256 minOutput, uint256 autoMinOutput) {
         uint256 feeTOKEN = input * FEE / DIVISOR;
         uint256 oldMrTOKEN = ITOKEN(TOKEN).mrrTOKEN();
         uint256 newMrTOKEN = oldMrTOKEN + input - feeTOKEN;
         if (newMrTOKEN > ITOKEN(TOKEN).mrvBASE()) {
-            return (0, 0, 0);
+            return (0, 0, 0, 0);
         }
 
         uint256 oldMrBASE = ITOKEN(TOKEN).mrvBASE() + ITOKEN(TOKEN).mrrBASE();
         output = oldMrBASE - (oldMrBASE * oldMrTOKEN / newMrTOKEN);
-
-        return (
-            output, 
-            100 * (1e18 - (output * 1e18 / ((input - feeTOKEN) * ITOKEN(TOKEN).getMarketPrice() / 1e18))), 
-            ((input - feeTOKEN) * ITOKEN(TOKEN).getMarketPrice() / 1e18) * slippageTolerance / DIVISOR
-        );
+        slippage = 100 * (1e18 - (output * 1e18 / (input * ITOKEN(TOKEN).getMarketPrice() / 1e18)));
+        minOutput = input * ITOKEN(TOKEN).getMarketPrice() /1e18 * slippageTolerance / DIVISOR;
+        autoMinOutput = input * ITOKEN(TOKEN).getMarketPrice() /1e18 * ((DIVISOR * 1e18) - ((slippage + 1e18) * 100)) / (DIVISOR * 1e18);
     }
 
-    function quoteSellOut(uint256 input, uint256 slippageTolerance) external view returns (uint256 output, uint256 slippage, uint256 minOutput) {
+    function quoteSellOut(uint256 input, uint256 slippageTolerance) external view returns (uint256 output, uint256 slippage, uint256 minOutput, uint256 autoMinOutput) {
         uint256 oldMrBASE = ITOKEN(TOKEN).mrvBASE() + ITOKEN(TOKEN).mrrBASE();
         output = DIVISOR * ((oldMrBASE * ITOKEN(TOKEN).mrrTOKEN() / (oldMrBASE - input)) - ITOKEN(TOKEN).mrrTOKEN()) / (DIVISOR - FEE);
         if (output + ITOKEN(TOKEN).mrrTOKEN() > ITOKEN(TOKEN).mrvBASE()) {
-            return (0, 0, 0);
+            return (0, 0, 0, 0);
         }
-
-        return (
-            output, 
-            100 * (1e18 - (input * 1e18 / ((output - (output * FEE / DIVISOR)) * ITOKEN(TOKEN).getMarketPrice() / 1e18))), 
-            ((output - (output * FEE / DIVISOR)) * ITOKEN(TOKEN).getMarketPrice() / 1e18) * slippageTolerance / DIVISOR
-        );
+        slippage = 100 * (1e18 - (input * 1e18 / (output * ITOKEN(TOKEN).getMarketPrice() / 1e18)));
+        minOutput = output * slippageTolerance / DIVISOR;
+        autoMinOutput = output * ((DIVISOR * 1e18) - ((slippage + 1e18) * 100)) / (DIVISOR * 1e18);
     }
 
 }

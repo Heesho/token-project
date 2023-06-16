@@ -150,6 +150,21 @@ contract VTOKEN is ERC20, ERC20Permit, ERC20Votes, ReentrancyGuard, Ownable {
         IVTOKENRewarder(rewarder)._deposit(amount, account);
     }
 
+    function emergencyExit()
+        external
+        nonReentrant
+        zeroVotingWeight(msg.sender)
+    {
+        address account = msg.sender;
+        if (ITOKEN(address(TOKEN)).debts(account) > 0) revert VTOKEN__CollateralActive();
+        uint256 amount = balanceOf(account);
+        _totalSupplyTOKEN -= amount;
+        _balancesTOKEN[account] -= amount;
+        _burn(account, amount);
+        IVTOKENRewarder(rewarder)._withdraw(IVTOKENRewarder(rewarder).balanceOf(account), account);
+        TOKEN.safeTransfer(account, amount);
+    }
+
     /*----------  FUNCTION OVERRIDES  -----------------------------------*/
 
     function _afterTokenTransfer(address from, address to, uint256 amount)

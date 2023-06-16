@@ -68,7 +68,7 @@ contract ERC4626Mock_Plugin is Plugin {
         IERC20Mock(getUnderlyingAddress()).mint(address(vault), 10);
         uint256 shares = vault.balanceOf(address(this));
         uint256 assets = vault.convertToAssets(shares);
-        uint256 yield = vault.convertToShares(assets - totalSupply());
+        uint256 yield = (vault.convertToShares(assets - totalSupply())) * 99 / 100; // to account for rounding errors
         if (yield > 0) {
             address treasury = IVoter(getVoter()).treasury();
 
@@ -78,6 +78,14 @@ contract ERC4626Mock_Plugin is Plugin {
             IERC20(address(vault)).safeApprove(getBribe(), yield - fee);
             IBribe(getBribe()).notifyRewardAmount(address(vault), yield - fee);
         }
+    }
+
+    function emergencyExit()
+        public
+        override
+    {
+        vault.withdraw(balanceOf(msg.sender), address(this), address(this));
+        super.emergencyExit();
     }
 
     /*----------  RESTRICTED FUNCTIONS  ---------------------------------*/

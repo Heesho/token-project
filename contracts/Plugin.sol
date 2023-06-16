@@ -103,6 +103,20 @@ abstract contract Plugin is ReentrancyGuard {
         emit Plugin__ClaimedAnDistributed();
     }
 
+    function emergencyExit()
+        public
+        virtual
+        nonReentrant
+    {
+        address account = msg.sender;
+        uint256 amount = _balances[account];
+        _totalSupply = _totalSupply - _balances[account];
+        _balances[account] = 0;
+        emit Plugin__Withdrawn(account, amount);
+        IGauge(gauge)._withdraw(account, IGauge(gauge).balanceOf(account));
+        underlying.safeTransfer(account, amount);
+    }
+
     /*----------  RESTRICTED FUNCTIONS  ---------------------------------*/
 
     function setGauge(address _gauge) external onlyVoter {

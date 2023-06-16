@@ -268,7 +268,6 @@ contract GaugeFactory {
     }
 
     function setVoter(address _voter) external onlyVoter {
-        require(_voter != address(0), "!Valid");
         if (_voter == address(0)) revert GaugeFactory__InvalidZeroAddress();
         voter = _voter;
         emit GaugeFactory__VoterSet(_voter);

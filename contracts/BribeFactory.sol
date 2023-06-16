@@ -257,7 +257,6 @@ contract BribeFactory {
     }
 
     function setVoter(address _voter) external onlyVoter {
-        require(_voter != address(0), "!Valid");
         if (_voter == address(0)) revert BribeFactory__InvalidZeroAddress();
         voter = _voter;
         emit BribeFactory__VoterSet(_voter);

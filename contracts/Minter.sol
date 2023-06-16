@@ -132,9 +132,9 @@ contract Minter is Ownable {
     }
 
     function setVoter(address _voter) 
-    external 
-    onlyOwner 
-    nonZeroAddress(_voter)
+        external 
+        onlyOwner 
+        nonZeroAddress(_voter)
     {
         voter = IVoter(_voter);
         emit Minter__VoterSet(_voter);

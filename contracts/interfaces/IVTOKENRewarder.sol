@@ -3,6 +3,7 @@ pragma solidity 0.8.19;
 
 interface IVTOKENRewarder {
     /*----------  FUNCTIONS  --------------------------------------------*/
+    function balanceOf(address account) external view returns (uint256);
     function notifyRewardAmount(address token, uint amount) external;
     /*----------  RESTRICTED FUNCTIONS  ---------------------------------*/
     function _deposit(uint amount, address account) external;

@@ -75,7 +75,7 @@ contract VTOKENRewarder is ReentrancyGuard {
         _;
     }
 
-    modifier onlyVTOKEN(address _address) {
+    modifier onlyVTOKEN {
         if (msg.sender != VTOKEN) {
             revert VTOKENRewarder__NotAuthorizedVTOKEN();
         }
@@ -152,7 +152,7 @@ contract VTOKENRewarder is ReentrancyGuard {
     function _deposit(uint256 amount, address account) 
         external
         updateReward(account)
-        onlyVTOKEN(msg.sender)
+        onlyVTOKEN
     {
         _totalSupply = _totalSupply + amount;
         _balances[account] = _balances[account] + amount;
@@ -168,7 +168,7 @@ contract VTOKENRewarder is ReentrancyGuard {
     function _withdraw(uint256 amount, address account) 
         external  
         updateReward(account)
-        onlyVTOKEN(msg.sender)
+        onlyVTOKEN
     {
         _totalSupply = _totalSupply - amount;
         _balances[account] = _balances[account] - amount;
@@ -181,7 +181,7 @@ contract VTOKENRewarder is ReentrancyGuard {
      */
     function addReward(address _rewardsToken) 
         external
-        onlyVTOKEN(msg.sender)
+        onlyVTOKEN
      {
         if (isRewardToken[_rewardsToken]) revert VTOKENRewarder__RewardTokenAlreadyAdded();
         isRewardToken[_rewardsToken] = true;
