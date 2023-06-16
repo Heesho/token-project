@@ -67,12 +67,12 @@ module.exports = {
     //   chainId: 42161,
     //   accounts: [PRIVATE_KEY],
     // },
-    mainnet: {
-      url:'https://mainnet.optimism.io',
-      browserURL: "https://optimistic.etherscan.io",
-      chainId: 10,
-      accounts: [PRIVATE_KEY],
-    },
+    // mainnet: {
+    //   url:'https://mainnet.optimism.io',
+    //   browserURL: "https://optimistic.etherscan.io",
+    //   chainId: 10,
+    //   accounts: [PRIVATE_KEY],
+    // },
     // mainnet: {
     //   url:'https://bsc-dataseed.binance.org/',
     //   chainId: 56,
