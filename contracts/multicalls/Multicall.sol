@@ -224,7 +224,7 @@ contract Multicall {
 
         uint[] memory _rewardsPerToken = new uint[](bribeCard.rewardTokens.length);
         for (uint i = 0; i < bribeCard.rewardTokens.length; i++) {
-            _rewardsPerToken[i] = IBribe(IVoter(voter).bribes(plugin)).rewardPerToken(bribeCard.rewardTokens[i]);
+            _rewardsPerToken[i] = IBribe(IVoter(voter).bribes(plugin)).getRewardForDuration(bribeCard.rewardTokens[i]) * 1e18;
         }
         bribeCard.rewardsPerToken = _rewardsPerToken;
 
