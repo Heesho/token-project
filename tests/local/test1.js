@@ -265,7 +265,7 @@ describe("test1", function () {
     it("User0 Sells all TOKEN", async function () {
         console.log("******************************************************");
         await TOKEN.connect(user0).approve(TOKEN.address, await TOKEN.getMaxSell());
-        await TOKEN.connect(user0).sell(await TOKEN.getMaxSell(), 1, 1692282187, user0.address, AddressZero);
+        await TOKEN.connect(user0).sell(await TOKEN.getMaxSell(), 1, 1892282187, user0.address, AddressZero);
     });
 
     it("User0 Buys 10 TOKEN", async function () {
@@ -295,7 +295,7 @@ describe("test1", function () {
         console.log("auto min BASE out", divDec(res.autoMinOutput));
 
         await TOKEN.connect(user0).approve(TOKEN.address, res.output);
-        await TOKEN.connect(user0).sell(res.output, res.autoMinOutput, 1692282187, user0.address, AddressZero);
+        await TOKEN.connect(user0).sell(res.output, res.autoMinOutput, 1892282187, user0.address, AddressZero);
     });
 
     it("BondingCurveData, user0", async function () {

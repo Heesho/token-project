@@ -11,5 +11,6 @@ interface IVTOKENRewarder {
     function addReward(address rewardToken) external;
     /*----------  VIEW FUNCTIONS  ---------------------------------------*/
     function rewardPerToken(address _rewardsToken) external view returns (uint256);
+    function getRewardForDuration(address reward) external view returns (uint);
     function earned(address account, address _rewardsToken) external view returns (uint256);
 }

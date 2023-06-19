@@ -155,8 +155,8 @@ contract Multicall {
         bondingCurve.tvl = ITOKEN(TOKEN).getTotalValueLocked() * bondingCurve.priceBASE / 1e18;
         bondingCurve.supplyTOKEN = IERC20(TOKEN).totalSupply();
         bondingCurve.supplyVTOKEN = IERC20(VTOKEN).totalSupply();
-        bondingCurve.apr = ((IVTOKENRewarder(rewarder).rewardPerToken(BASE) * bondingCurve.priceBASE / 1e18) +  (IVTOKENRewarder(rewarder).rewardPerToken(TOKEN) * bondingCurve.priceTOKEN / 1e18) + 
-                           (IVTOKENRewarder(rewarder).rewardPerToken(OTOKEN) * bondingCurve.priceOTOKEN / 1e18)) * 365 * 100 * 1e18 / (7 * bondingCurve.priceTOKEN);
+        bondingCurve.apr = bondingCurve.supplyVTOKEN == 0 ? 0 : (((IVTOKENRewarder(rewarder).getRewardForDuration(BASE) * bondingCurve.priceBASE / 1e18) + (IVTOKENRewarder(rewarder).getRewardForDuration(TOKEN) * bondingCurve.priceTOKEN / 1e18) + 
+                           (IVTOKENRewarder(rewarder).getRewardForDuration(OTOKEN) * bondingCurve.priceOTOKEN / 1e18)) * 365 * 100 * 1e18 / (7 * bondingCurve.supplyVTOKEN * bondingCurve.priceTOKEN / 1e18));
         bondingCurve.ltv = 100 * ITOKEN(TOKEN).getFloorPrice() * 1e18 / ITOKEN(TOKEN).getMarketPrice();
         bondingCurve.ratio = ITOKEN(TOKEN).getMarketPrice() * 1e18 / ITOKEN(TOKEN).getFloorPrice();
 
@@ -195,7 +195,7 @@ contract Multicall {
         gaugeCard.priceUnderlying = IPlugin(plugin).getPrice();
         gaugeCard.priceOTOKEN = ITOKEN(TOKEN).getOTokenPrice() * (priceBASE) / 1e18;
         
-        gaugeCard.apr = IGauge(IVoter(voter).gauges(plugin)).rewardPerToken(OTOKEN) * gaugeCard.priceOTOKEN * 365 * 100 / 7 / gaugeCard.priceUnderlying;
+        gaugeCard.apr = IGauge(gaugeCard.gauge).totalSupply() == 0 ? 0 : (IGauge(IVoter(voter).gauges(plugin)).getRewardForDuration(OTOKEN) * gaugeCard.priceOTOKEN * 365 * 100 / 7 / (gaugeCard.priceUnderlying * IGauge(gaugeCard.gauge).totalSupply() / 1e18));
         gaugeCard.tvl = IGauge(IVoter(voter).gauges(plugin)).totalSupply() * gaugeCard.priceUnderlying / 1e18;
         gaugeCard.votingWeight = (IVoter(voter).totalWeight() == 0 ? 0 : 100 * IVoter(voter).weights(plugin) * 1e18 / IVoter(voter).totalWeight());
         gaugeCard.totalSupply = IGauge(gaugeCard.gauge).totalSupply();
