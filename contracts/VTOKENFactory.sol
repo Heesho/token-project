@@ -19,12 +19,19 @@ import "contracts/interfaces/IVTOKENRewarderFactory.sol";
 /**
  * @title VTOKEN
  * @author heesho
+ * 
  * VTOKEN is a staking contract for TOKEN. VTOKEN is minted when TOKEN is deposited and burned when TOKEN is withdrawn.
  * VTOKEN holders govern the system and have voting power on gauges where they can earn voting rewards.
  * VTOKEN holders also earn a share of fees collected from the bonding curve from the Rewarder contract.
  * VTOKEN can also be used as collateral to borrow BASE from the bonding curve.
  * VTOKEN is non-transferable. And is locked until users reset their voting weight to 0 and pay back their loans.
+ * Buring OTOKEN for an account will increase its VTOKEN balance, however it is a one way transaction and can never
+ * be withdrawn.
+ * 
  * 1 VTOKEN = 1 Voting Power
+ * 
+ * The VTOKEN balanceOf must always be equal to VTOKENRewarder balanceOf for all accounts at all times.
+ * The VTOKEN totalSupply must always be equal to VTOKENRewarder totalSupply at all times.
  */
 contract VTOKEN is ERC20, ERC20Permit, ERC20Votes, ReentrancyGuard, Ownable {
     using SafeERC20 for IERC20;

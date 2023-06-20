@@ -10,8 +10,19 @@ import "contracts/interfaces/IVoter.sol";
  * @title Gauge
  * @author heesho
  * 
- * Gauge contract for distributing rewards to plugins depositors.
+ * Gauges distribute OTOKEN to farmers based on their deposit balance. 
+ * Rewards are distributed over a 7 day period.
  * 
+ * Gauge contract for distributing rewards to plugins depositors. No user funds are
+ * ever stored in the Gauge contract itself. Instead, the Gauge contract stores
+ * reward data for each reward token and a virtual balance for user deposits in its
+ * plugin contract. The virtual balance is used to calculate the amount of rewards
+ * a user is entitled to.
+ * 
+ * Each Gauge has a unique corresponding Plugin contract.
+ * 
+ * Gauge balanceOf must be equal to Plugin balanceOf for all users at all times.
+ * Gauge totalSupply must be equal to Plugin totalSupply at all times.
  */
 contract Gauge is ReentrancyGuard {
     using SafeERC20 for IERC20;

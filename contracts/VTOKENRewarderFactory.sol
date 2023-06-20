@@ -13,9 +13,8 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
  * to this contract based on when users deposit/withdraw/burn in the VTOKEN contract. The user balance in this contract
  * should always be equal to the users voting power in the VTOKEN contract. 
  * 
- * Invariants:
- * - balance in VTOKENRewarder == voting power in VTOKEN for every account
- * - totalSupply in VTOKENRewarder == total voting power in VTOKEN
+ * The VTOKENRewarder balanceOf must always be equal to VTOKEN balanceOf for all accounts at all times.
+ * The VTOKENRewarder totalSupply must always be equal to VTOKEN totalSupply at all times.
  */
 contract VTOKENRewarder is ReentrancyGuard {
     using SafeERC20 for IERC20;

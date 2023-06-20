@@ -8,8 +8,21 @@ import "contracts/interfaces/IGauge.sol";
 import "contracts/interfaces/IBribe.sol";
 import "contracts/interfaces/IVoter.sol";
 
-// add an emergency withdraw function?
-
+/**
+ * @title Plugin
+ * @author heesho
+ * 
+ * Plugins are contracts that can be used to integrate a yield-bearing asset with the Voting system.
+ * The idea is that when a yield-bearing asset is added to this system, users can deposit it in a Plugin
+ * to earn OTOKEN rewards. The Plugin will strip the yield from the yield-bearing asset and distribute it
+ * as a voting reward to VTOKEN holders that voted for the Plugin. The Plugin contract is in charge of 
+ * accepting deposits/withdrawals from accounts and updating their balances in the corresponding Gauge contract
+ * so that they can receive OTOKEN rewards. The Plugin is also in charge of harvesting yield from the yield-bearing
+ * asset (underlying) and distributing that yield to its corresponding Bribe contract.
+ * 
+ * Plugin balanceOf must be equal to Gauge balanceOf for all users at all times.
+ * Plugin totalSupply must be equal to Gauge totalSupply at all times.
+ */
 abstract contract Plugin is ReentrancyGuard {
     using SafeERC20 for IERC20Metadata;
 

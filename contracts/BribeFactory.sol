@@ -9,8 +9,21 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
  * @title Bribe
  * @author heesho
  * 
- * Bribe contract for distributing voting rewards to VTOKEN holders that vote for gauges
- * on the Voter contract.
+ * Bribe contract for distributing voting rewards to VTOKEN holders that vote for plugins
+ * on the Voter contract. Rewards are distributed over 7 days. Rewards are distributed
+ * to VTOKEN holders that vote for plugins on the Voter contract. VTOKEN holders will only
+ * earn voting rewards from plugins that they vote for. VTOKEN holders get a deposit a virtual
+ * balance in the Bribe contract by voting for its corresponding plugin on the Voter contract.
+ * VTOKEN holders can withdraw their bribe balance by resetting their votes to 0.
+ * 
+ * No VTOKEN is ever stored in the Bribe contract itself, rather a virtual balance is stored
+ * when votes are cast. The virtual balance is used to calculate the amount of rewards that
+ * each VTOKEN holder is entitled to. 
+ * 
+ * Each plugin has a unique corresponding Bribe contract.
+ * 
+ * Bribe balanceOf must be equal to Voter votes for that plugin for all accounts at all times.
+ * Bribe totalSupply must be equal to Voter weights at all times.
  */
 contract Bribe is ReentrancyGuard {
     using SafeERC20 for IERC20;

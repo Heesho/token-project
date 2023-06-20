@@ -17,8 +17,13 @@ import "contracts/interfaces/IBribeFactory.sol";
  * @title Voter
  * @author heesho
  * 
- * Voter contract is used to vote on plugins. It is also used to create gauges for plugins and distribute rewards to gauges.
+ * Voter contract is used to vote on plugins. When a Plugin is added a Gauge and Bribe are deployed for that Plugin.
+ * VTOKEN holders can cast votes on Plugins in the Voter contract. The Voter will distribute OTOKEN to those Plugin's
+ * gauges based every week based on the votes cast. When an account casts a vote on a plugin, its corresponding Bribe
+ * balance will be updated to reflect that account's votes for them to receive voting rewards from that plugin.
  * 
+ * Voter votes must be equal to Bribe balanceOf for that plugin for all accounts at all times.
+ * Voter weights must be equal to Bribe totalSupply at all times.
  */
 contract Voter is ReentrancyGuard, Ownable {
 
