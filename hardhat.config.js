@@ -43,17 +43,10 @@ module.exports = {
   networks: {
     hardhat: {
       // Fantom
-      // chainId: 250,
-      // forking: {
-      //   url: "https://rpc.ftm.tools",
-      // },
-      // Canto
-      // chainId: 7700,
-      // forking: {
-      //   url: "https://mainnode.plexnode.org:8545",
-      //   blockNumber: 4266801,
-      // },
-      // resetBlockNumber: 4266801,
+      chainId: 250,
+      forking: {
+        url: "https://rpc.ftm.tools",
+      },
     },
     // mainnet: {
     //   url:
@@ -95,7 +88,7 @@ module.exports = {
   },
   paths: {
     sources: "./contracts",
-    tests: "./tests/local",
+    tests: "./tests/fantom",
     cache: "./cache",
     artifacts: "./artifacts",
   },
