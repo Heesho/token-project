@@ -1,0 +1,1 @@
+// price of LP paired with FTM
