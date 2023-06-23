@@ -26,8 +26,9 @@ import "contracts/interfaces/IVTOKENRewarderFactory.sol";
  * VTOKEN can also be used as collateral to borrow BASE from the bonding curve.
  * VTOKEN is non-transferable. And is locked until users reset their voting weight to 0 and pay back their loans.
  * Buring OTOKEN for an account will increase its VTOKEN balance, however it is a one way transaction and can never
- * be withdrawn.
+ * be withdrawn. 
  * 
+ * VTOKEN holders can use their voting power to vote on gauges and earn voting rewards.
  * 1 VTOKEN = 1 Voting Power
  * 
  * The VTOKEN balanceOf must always be equal to VTOKENRewarder balanceOf for all accounts at all times.

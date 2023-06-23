@@ -35,6 +35,40 @@ import "contracts/interfaces/ITOKENFeesFactory.sol";
  * | RESERVE   | RESERVE |   
  * |___________|_________| 
  * |<----Cf--->|<---Cm-->|
+ * ```solidity
+/**
+ * @title TOKEN Bonding Curve
+ * @author heesho
+ * 
+ * @dev This contract governs the price dynamics of an ERC20 TOKEN via a dual bonding curve mechanism:
+ * 1. A fixed-price curve, y = c, where the TOKEN price is invariant at 1 BASE/TOKEN (the floor price). 
+ *    TOKENs are minted from floor reserves by exercising OTOKEN call options equivalent to the BASE amount. 
+ *    TOKENs can be consistently redeemed from floor reserves at the floor price.
+ * 2. A variable-price curve that employs the xy=k formula for TOKEN price discovery. An initial TOKEN supply 
+ *    is minted into market reserves, balanced by a corresponding quantity of virtual BASE. TOKEN pricing on the 
+ *    market reserves spans a range of 1 BASE/TOKEN (lower bound) to infinity BASE/TOKEN (upper bound). The market 
+ *    reserve facilitates the buying and selling of TOKENs.
+ * 
+ * The integration of these reserves forms the comprehensive bonding curve for the TOKEN.
+ *
+ * @notice The constructs of floor reserves and market reserves underpin this contract.
+ * Floor reserves are BASE pools allowing TOKEN redemption at a static floor price. TOKENs are exclusively minted from floor reserves via exercising OTOKEN call options using BASE.
+ * Market reserves incorporate variable amounts of BASE and TOKEN subjected to market-driven pricing derived from a virtual xy=k invariant. An initial TOKEN supply is minted into the market reserves, offset by an equal virtual BASE volume. TOKEN pricing in the market reserves varies from a minimum of 1 BASE/TOKEN to an upper limit of infinity BASE/TOKEN.
+ *
+ * Provided functionalities include:
+ * @notice buy() - Acquire TOKEN from the bonding curve's market reserves using BASE
+ * @notice sell() - Dispose of TOKEN to the bonding curve's market reserves for BASE
+ * @notice exercise() - Exercise OTOKEN call options using BASE to yield equivalent TOKEN quantities
+ * @notice redeem() - Redeem TOKEN for a BASE equivalent from the floor reserves at the unvarying floor price
+ * @notice borrow() - Borrow BASE from the bonding curve against collateralized VTOKEN at the TOKEN's floor price
+ * @notice repay() - Repay BASE to the bonding curve, reducing the account's borrow credit limit and unlocking VTOKEN collateral
+ * @notice setTreasury() - Assign the treasury address, which serves as the protocol's revenue repository
+ * 
+ * @dev The contract is designed to interact with external contracts including: OTOKEN, VTOKEN, and a FEES contract. It is also equipped to levy protocol and UI hosting provider fees.
+ * The TOKEN's initial supply is minted to the bonding curve balanced by an equal amount of virtual BASE. For the bonding curve to operate correctly, BASE must be an 18 decimal ERC20 token.
+ * The contract is fortified with various error handling mechanisms and emits events for notable actions.
+ */
+```
  */ 
 contract TOKEN is ERC20, ReentrancyGuard, Ownable {
     using SafeERC20 for IERC20;

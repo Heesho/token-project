@@ -8,7 +8,7 @@ const oneMillion = convert("1000000", 18);
 const tenMillion = convert("10000000", 18);
 
 // Contracts
-let OTOKEN, TOKEN, VTOKEN, fees, rewarder;;
+let OTOKEN, TOKEN, VTOKEN, fees, rewarder;
 let VTOKENFactory, OTOKENFactory, feesFactory, rewarderFactory;
 let voter, minter, gaugeFactory, bribeFactory;
 let multicall, governor;
@@ -263,14 +263,38 @@ async function verifyGovernor() {
   console.log("Governor Verified");
 }
 
+// async function deployMulticall() {
+//   console.log('Starting Multicall Deployment');
+//   const multicallArtifact = await ethers.getContractFactory("contracts/multicalls/Multicall.sol:Multicall");
+//   const multicallContract = await multicallArtifact.deploy(voter.address, BASE.address, TOKEN.address, OTOKEN.address, VTOKEN.address, rewarder.address, { gasPrice: ethers.gasPrice, });
+//   multicall = await multicallContract.deployed();
+//   await sleep(5000);
+//   console.log("Multicall Deployed at:", multicall.address);
+// }
+
 async function deployMulticall() {
   console.log('Starting Multicall Deployment');
   const multicallArtifact = await ethers.getContractFactory("contracts/multicalls/Multicall.sol:Multicall");
-  const multicallContract = await multicallArtifact.deploy(voter.address, BASE.address, TOKEN.address, OTOKEN.address, VTOKEN.address, rewarder.address, { gasPrice: ethers.gasPrice, });
+  const multicallContract = await multicallArtifact.deploy("0x6cC3217Eed6d45497b0f566522C36927da108321", "0xAa171Ad6f4eD52ED74707300aD90bDAEE8398773", "0x8d6abe4176f262F79317a1ec60B9C6e070a2142a", "0xc7a80762B3dcA438E81Ef6daA92E7323BE2e7C13", "0x0a5D71AbF79daaeE3853Db43c1Fb9c20195585f9", "0xc759291f52cA29d754cb071Cc7BC41F3E029b045", { gasPrice: ethers.gasPrice, });
   multicall = await multicallContract.deployed();
   await sleep(5000);
   console.log("Multicall Deployed at:", multicall.address);
+  console.log('Starting Multicall Verification');
+  await hre.run("verify:verify", {
+    address: multicall.address,
+    contract: "contracts/multicalls/Multicall.sol:Multicall",
+    constructorArguments: [
+      "0x6cC3217Eed6d45497b0f566522C36927da108321", 
+      "0xAa171Ad6f4eD52ED74707300aD90bDAEE8398773",
+      "0x8d6abe4176f262F79317a1ec60B9C6e070a2142a",
+      "0xc7a80762B3dcA438E81Ef6daA92E7323BE2e7C13",
+      "0x0a5D71AbF79daaeE3853Db43c1Fb9c20195585f9",
+      "0xc759291f52cA29d754cb071Cc7BC41F3E029b045"
+    ],
+  });
+  console.log("Multicall Verified");
 }
+
 
 async function verifyMulticall() {
   console.log('Starting Multicall Verification');
@@ -423,46 +447,46 @@ async function main() {
   console.log('Using wallet: ', wallet.address);
   
   // TOKEN system 
-  await deployBASE();
-  await deployOTOKENFactory()
-  await deployVTOKENFactory()
-  await deployFeesFactory()
-  await deployRewarderFactory()
-  await deployTOKEN();
+  // await deployBASE();
+  // await deployOTOKENFactory()
+  // await deployVTOKENFactory()
+  // await deployFeesFactory()
+  // await deployRewarderFactory()
+  // await deployTOKEN();
 
   // Voting system
-  await deployGaugeFactory(wallet.address); 
-  await deployBribeFactory(wallet.address);
-  await deployVoter();
-  await deployMinter();
-  await deployGovernor();
+  // await deployGaugeFactory(wallet.address); 
+  // await deployBribeFactory(wallet.address);
+  // await deployVoter();
+  // await deployMinter();
+  // await deployGovernor();
   await deployMulticall();
 
   // Verification
-  await verifyTOKEN();
-  await verifyOTOKEN(wallet.address);
-  await verifyTOKENFees();
-  await verifyVTOKEN();
-  await verifyRewarder();
-  await verifyGaugeFactory(wallet.address); 
-  await verifyBribeFactory(wallet.address);
-  await verifyVoter();
-  await verifyMinter();
-  await verifyGovernor();
-  await verifyMulticall();
+  // await verifyTOKEN();
+  // await verifyOTOKEN(wallet.address);
+  // await verifyTOKENFees();
+  // await verifyVTOKEN();
+  // await verifyRewarder();
+  // await verifyGaugeFactory(wallet.address); 
+  // await verifyBribeFactory(wallet.address);
+  // await verifyVoter();
+  // await verifyMinter();
+  // await verifyGovernor();
+  // await verifyMulticall();
 
   // Set up
-  await setUpSystem(wallet.address);
+  // await setUpSystem(wallet.address);
 
   // Plugins
-  await deployPlugin0();
-  await deployPlugin1();
-  await deployPlugin2();
-  await deployPlugin3();
-  await deployPlugin4();
-  await deployPlugin5();
+  // await deployPlugin0();
+  // await deployPlugin1();
+  // await deployPlugin2();
+  // await deployPlugin3();
+  // await deployPlugin4();
+  // await deployPlugin5();
 
-  await addPlugins();
+  // await addPlugins();
 
   console.log("System Deployed");
 }
