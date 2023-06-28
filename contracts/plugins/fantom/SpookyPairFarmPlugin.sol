@@ -1,111 +1,110 @@
-// // SPDX-License-Identifier: MIT
-// pragma solidity 0.8.19;
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.19;
 
-// // Spooky
-// // ETH-FTM LP
-// // USDC-FTM LP
-// // BTC-FTM LP
-// // BTC-ETH LP
+// Spooky
+// ETH-FTM LP
+// USDC-FTM LP
+// BTC-FTM LP
+// BTC-ETH LP
 
-// import 'contracts/Plugin.sol';
+import 'contracts/Plugin.sol';
 
-// interface ISpookyRouter {
-//     function getReserves(address _tokenA, address _tokenB, bool stable) external view returns (uint256, uint256);
-//     function isPair(address _pair) external view returns (bool);
-// }
+interface ISpookyRouter {
+    function isPair(address _pair) external view returns (bool);
+}
 
-// interface ISpookyPairToken {
-//     function name() external view returns (string memory);
-//     function symbol() external view returns (string memory);
-// }
+interface ISpookyPairToken {
+    function name() external view returns (string memory);
+    function symbol() external view returns (string memory);
+}
 
-// interface ISpookyMasterChef {
-//     function deposit(uint256 _amount, uint256 tokenId) external;
-//     function withdraw(uint256 _amount) external;
-//     function getReward(address _account, address[] memory _tokens) external;
-// }
+interface ISpookyMasterChef {
+    function lpToken(uint256 _pid) external view returns (address);
+    function deposit(uint256 _pid, uint256 _amount) external;
+    function withdraw(uint256 _pid, uint256 _amount) external;
+    function harvestAll() external;
+}
 
-// abstract contract SpookyPairFarmPlugin is Plugin {
-//     using SafeERC20 for IERC20;
+abstract contract SpookyPairFarmPlugin is Plugin {
+    using SafeERC20 for IERC20;
 
-//     /*----------  CONSTANTS  --------------------------------------------*/
+    /*----------  CONSTANTS  --------------------------------------------*/
 
-//     address public constant ROUTER = 0x2aa07920E4ecb4ea8C801D9DFEce63875623B285; // update address
-//     address public constant MASTER_CHEF = 0x4bebEB8188aEF8287f9a7d1E4f01d76cBE060d5b; // update address
-//     address public constant BOO = 0x3Fd3A0c85B70754eFc07aC9Ac0cbBDCe664865A6; // update address
+    address public constant ROUTER = 0xF491e7B69E4244ad4002BC14e878a34207E38c29;
+    address public constant MASTER_CHEF = 0x18b4f774fdC7BF685daeeF66c2990b1dDd9ea6aD;
+    address public constant BOO = 0x841FAD6EAe12c286d1Fd18d1d525DFfA75C7EFFE;
 
-//     /*----------  STATE VARIABLES  --------------------------------------*/
+    /*----------  STATE VARIABLES  --------------------------------------*/
 
-//     uint256 public masterChefPID;
-//     /*----------  ERRORS ------------------------------------------------*/
+    uint256 public immutable masterChefPID;
 
-//     error Plugin__NotPair();
-//     error Plugin__InvalidFarm();
-//     error Plugin__InvalidBribeTokens();
+    /*----------  ERRORS ------------------------------------------------*/
 
-//     /*----------  FUNCTIONS  --------------------------------------------*/
+    error Plugin__NotPair();
+    error Plugin__InvalidFarm();
 
-//     constructor(
-//         address _underlying, 
-//         address _OTOKEN, 
-//         address _voter, 
-//         address[] memory _tokensInUnderlying, 
-//         address[] memory _bribeTokens,
-//         string memory _protocol,
-//         uint256 _pid
-//     )
-//         Plugin(
-//             _underlying, 
-//             _OTOKEN, 
-//             _voter, 
-//             _tokensInUnderlying, 
-//             _bribeTokens,
-//             _protocol
-//         )
-//     {
-//         if (_bribeTokens[0] != BOO || _bribeTokens.length > 1) revert Plugin__InvalidBribeTokens();  
-//         if (ISpookyRouter(ROUTER).isPair(_underlying) == false) revert Plugin__NotPair();
-//         masterChefPID = _pid;
-//         // if pool token of PID does not match underlying revert Plugin__InvalidFarm()
-//     }
+    /*----------  FUNCTIONS  --------------------------------------------*/
 
-//     function depositFor(address account, uint256 amount) 
-//         public 
-//         override 
-//     {
-//         super.depositFor(account, amount);
-//         IERC20(getUnderlyingAddress()).approve(MASTER_CHEF, 0);
-//         IERC20(getUnderlyingAddress()).approve(MASTER_CHEF, amount);
-//         ISpookyMasterChef(MASTER_CHEF).deposit(amount, 0); // deposit will change
-//     }
+    constructor(
+        address _underlying, 
+        address _OTOKEN, 
+        address _voter, 
+        address[] memory _tokensInUnderlying, 
+        address[] memory _bribeTokens,
+        string memory _protocol,
+        uint256 _pid
+    )
+        Plugin(
+            _underlying, 
+            _OTOKEN, 
+            _voter, 
+            _tokensInUnderlying, 
+            _bribeTokens,
+            _protocol
+        )
+    {
+        if (ISpookyRouter(ROUTER).isPair(_underlying) == false) revert Plugin__NotPair();
+        masterChefPID = _pid;
+        if (ISpookyMasterChef(MASTER_CHEF).lpToken(_pid) != _underlying) revert Plugin__InvalidFarm();
+    }
 
-//     function withdrawTo(address account, uint256 amount) 
-//         public 
-//         override 
-//     {
-//         ISpookyMasterChef(MASTER_CHEF).withdraw(amount); // withdraw will change
-//         super.withdrawTo(account, amount);
-//     }
+    function depositFor(address account, uint256 amount) 
+        public 
+        override 
+    {
+        super.depositFor(account, amount);
+        IERC20(getUnderlyingAddress()).approve(MASTER_CHEF, 0);
+        IERC20(getUnderlyingAddress()).approve(MASTER_CHEF, amount);
+        ISpookyMasterChef(MASTER_CHEF).deposit(masterChefPID, amount); 
+    }
 
-//     function claimAndDistribute() 
-//         public 
-//         override 
-//     {
-//         super.claimAndDistribute();
-//         gauge.getReward(address(this), getBribeTokens());
-//         address treasury = IVoter(getVoter()).treasury();
-//         uint256 balance = IERC20(EQUAL).balanceOf(address(this));
-//         if (balance > 0) {
-//             uint256 fee = balance * getFee() / getDivisor();
-//             IERC20(EQUAL).safeTransfer(treasury, fee);
-//             IERC20(EQUAL).safeApprove(getBribe(), 0);
-//             IERC20(EQUAL).safeApprove(getBribe(), balance - fee);
-//             IBribe(getBribe()).notifyRewardAmount(EQUAL, balance - fee);
-//         }
-//     }
+    function withdrawTo(address account, uint256 amount) 
+        public 
+        override 
+    {
+        ISpookyMasterChef(MASTER_CHEF).withdraw(masterChefPID, amount); 
+        super.withdrawTo(account, amount);
+    }
 
-//     /*----------  RESTRICTED FUNCTIONS  ---------------------------------*/
+    function claimAndDistribute() 
+        public 
+        override 
+    {
+        super.claimAndDistribute();
+        ISpookyMasterChef(MASTER_CHEF).harvestAll();
+        address treasury = IVoter(getVoter()).treasury();
+        uint256 balance = IERC20(BOO).balanceOf(address(this));
+        if (balance > 0) {
+            uint256 fee = balance * getFee() / getDivisor();
+            IERC20(BOO).safeTransfer(treasury, fee);
+            IERC20(BOO).safeApprove(getBribe(), 0);
+            IERC20(BOO).safeApprove(getBribe(), balance - fee);
+            IBribe(getBribe()).notifyRewardAmount(BOO, balance - fee);
+        }
+    }
 
-//     /*----------  VIEW FUNCTIONS  ---------------------------------------*/
+    /*----------  RESTRICTED FUNCTIONS  ---------------------------------*/
 
-// }
+    /*----------  VIEW FUNCTIONS  ---------------------------------------*/
+
+}

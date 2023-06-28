@@ -10,7 +10,6 @@ pragma solidity 0.8.19;
 import 'contracts/Plugin.sol';
 
 interface ISpiritV2Router {
-    function getReserves(address _tokenA, address _tokenB, bool stable) external view returns (uint256, uint256);
     function isPair(address _pair) external view returns (bool);
 }
 
@@ -22,7 +21,7 @@ interface ISpiritV2PairToken {
     function claimFees() external returns (uint claimed0, uint claimed1);
 }
 
-abstract contract SpiritV2PairPlugin is Plugin {
+contract SpiritV2PairPlugin is Plugin {
     using SafeERC20 for IERC20;
 
     /*----------  CONSTANTS  --------------------------------------------*/
@@ -42,7 +41,6 @@ abstract contract SpiritV2PairPlugin is Plugin {
         address _OTOKEN, 
         address _voter, 
         address[] memory _tokensInUnderlying, 
-        address[] memory _bribeTokens,
         string memory _protocol
     )
         Plugin(
@@ -50,7 +48,7 @@ abstract contract SpiritV2PairPlugin is Plugin {
             _OTOKEN, 
             _voter, 
             _tokensInUnderlying, 
-            _bribeTokens,
+            _tokensInUnderlying,
             _protocol
         )
     {
