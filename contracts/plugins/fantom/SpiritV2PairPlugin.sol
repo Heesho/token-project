@@ -11,6 +11,7 @@ import 'contracts/Plugin.sol';
 
 interface ISpiritV2Router {
     function getReserves(address _tokenA, address _tokenB, bool stable) external view returns (uint256, uint256);
+    function isPair(address _pair) external view returns (bool);
 }
 
 interface ISpiritV2PairToken {
@@ -21,14 +22,18 @@ interface ISpiritV2PairToken {
     function claimFees() external returns (uint claimed0, uint claimed1);
 }
 
-abstract contract SpiritV2Pair_Plugin is Plugin {
+abstract contract SpiritV2PairPlugin is Plugin {
     using SafeERC20 for IERC20;
 
     /*----------  CONSTANTS  --------------------------------------------*/
 
-    address public constant ROUTER = 0x2aa07920E4ecb4ea8C801D9DFEce63875623B285;
+    address public constant ROUTER = 0x09855B4ef0b9df961ED097EF50172be3e6F13665;
 
     /*----------  STATE VARIABLES  --------------------------------------*/
+
+    /*----------  ERRORS ------------------------------------------------*/
+
+    error Plugin__NotPair();
 
     /*----------  FUNCTIONS  --------------------------------------------*/
 
@@ -48,14 +53,16 @@ abstract contract SpiritV2Pair_Plugin is Plugin {
             _bribeTokens,
             _protocol
         )
-    {}
+    {
+        if (ISpiritV2Router(ROUTER).isPair(_underlying) == false) revert Plugin__NotPair();
+    }
 
     function claimAndDistribute() 
         public 
         override 
     {
         super.claimAndDistribute();
-        ISpiritV2PairToken(address(getUnderlyingAddress())).claimFees();
+        ISpiritV2PairToken(getUnderlyingAddress()).claimFees();
         address treasury = IVoter(getVoter()).treasury();
         for (uint i = 0; i < getBribeTokens().length; i++) {
             address token = getBribeTokens()[i];

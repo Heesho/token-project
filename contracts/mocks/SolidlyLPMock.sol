@@ -10,22 +10,16 @@ interface IERC20Mock {
 contract SolidlyLPMock is ERC20 {
     address public token0;
     address public token1;
-    uint256 public price;
     
     constructor(string memory name, string memory symbol, address _token0, address _token1)
         ERC20(name, symbol)
     {
-        price = 1e18;
         token0 = _token0;
         token1 = _token1;
     }
 
     function mint(address _to, uint256 _amount) public {
         _mint(_to, _amount * (10**18));
-    }
-
-    function setPrice(uint256 _price) external {
-        price = _price;
     }
 
 }

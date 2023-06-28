@@ -12,7 +12,7 @@ interface IERC20Mock {
     function mint(address _to, uint256 _amount) external;
 }
 
-contract ERC4626Mock_Plugin is Plugin {
+contract ERC4626MockPlugin is Plugin {
     using SafeERC20 for IERC20;
 
     /*----------  STATE VARIABLES  --------------------------------------*/
@@ -80,14 +80,6 @@ contract ERC4626Mock_Plugin is Plugin {
         }
     }
 
-    function emergencyExit()
-        public
-        override
-    {
-        vault.withdraw(balanceOf(msg.sender), address(this), address(this));
-        super.emergencyExit();
-    }
-
     /*----------  RESTRICTED FUNCTIONS  ---------------------------------*/
 
     function appendString(string memory _a, string memory _b, string memory _c) internal pure returns (string memory)  {
@@ -102,10 +94,6 @@ contract ERC4626Mock_Plugin is Plugin {
 
     function getUnderlyingSymbol() public view override returns (string memory) {
         return appendString(IERC20Metadata(getUnderlyingAddress()).symbol(), " in ", vault.symbol());
-    }
-
-    function getPrice() public view override returns (uint256) {
-        return IERC4626Mock(address(vault)).price();
     }
 
     function getVault() public view returns (address) {

@@ -20,7 +20,7 @@ const oneThousand = convert("1000", 18);
 
 let owner, multisig, treasury, user0, user1, user2;
 let VTOKENFactory, OTOKENFactory, feesFactory, rewarderFactory, gaugeFactory, bribeFactory;
-let minter, voter, fees, rewarder, governance, multicall;
+let minter, voter, fees, rewarder, governance, multicall, priceOracle;
 let TOKEN, VTOKEN, OTOKEN, BASE;
 let TEST0, xTEST0, plugin0, gauge0, bribe0;
 let TEST1, xTEST1, plugin1, gauge1, bribe1;
@@ -133,6 +133,12 @@ describe("test1", function () {
         multicall = await ethers.getContractAt("Multicall", multicallContract.address);
         console.log("- Multicall Initialized");
 
+        // initialize PriceOracle
+        const priceOracleArtifact = await ethers.getContractFactory("PriceOracleMock");
+        const priceOracleContract = await priceOracleArtifact.deploy();
+        priceOracle = await ethers.getContractAt("PriceOracleMock", priceOracleContract.address);
+        console.log("- PriceOracle Initialized");
+
         // System set-up
         await expect(gaugeFactory.connect(user2).setVoter(voter.address)).to.be.revertedWith("GaugeFactory__UnathorizedVoter");
         await expect(gaugeFactory.setVoter(AddressZero)).to.be.revertedWith("GaugeFactory__InvalidZeroAddress");
@@ -149,31 +155,31 @@ describe("test1", function () {
         await voter.initialize(minter.address);
         await expect(minter.connect(user2).initialize()).to.be.revertedWith("Minter__UnathorizedInitializer");
         await minter.initialize();
-        await multicall.setPriceBase(one);
+        await multicall.setPriceOracle(priceOracle.address);
         console.log("- System set up");
 
         // initialize ERC4626Mock_Plugin for TEST0 in xTEST0
-        const TEST0_ERC4626Mock_PluginArtifact = await ethers.getContractFactory("ERC4626Mock_Plugin");
+        const TEST0_ERC4626Mock_PluginArtifact = await ethers.getContractFactory("ERC4626MockPlugin");
         const TEST0_ERC4626Mock_PluginContract = await TEST0_ERC4626Mock_PluginArtifact.deploy(TEST0.address, xTEST0.address, OTOKEN.address, voter.address, [TEST0.address], [xTEST0.address], "Protocol0");
-        plugin0 = await ethers.getContractAt("ERC4626Mock_Plugin", TEST0_ERC4626Mock_PluginContract.address);
+        plugin0 = await ethers.getContractAt("ERC4626MockPlugin", TEST0_ERC4626Mock_PluginContract.address);
         console.log("- TEST0_ERC4626Mock_Plugin Initialized");
 
         // initialize ERC4626Mock_Plugin for TEST1 in xTEST1
-        const TEST1_ERC4626Mock_PluginArtifact = await ethers.getContractFactory("ERC4626Mock_Plugin");
+        const TEST1_ERC4626Mock_PluginArtifact = await ethers.getContractFactory("ERC4626MockPlugin");
         const TEST1_ERC4626Mock_PluginContract = await TEST1_ERC4626Mock_PluginArtifact.deploy(TEST1.address, xTEST1.address, OTOKEN.address, voter.address, [TEST1.address], [xTEST1.address], "Protocol0");
-        plugin1 = await ethers.getContractAt("ERC4626Mock_Plugin", TEST1_ERC4626Mock_PluginContract.address);
+        plugin1 = await ethers.getContractAt("ERC4626MockPlugin", TEST1_ERC4626Mock_PluginContract.address);
         console.log("- TEST1_ERC4626Mock_Plugin Initialized");
 
         // initialize SolidlyLPMock_Plugin for LP0
-        const LP0_SolidlyLPMock_PluginArtifact = await ethers.getContractFactory("SolidlyLPMock_Plugin");
+        const LP0_SolidlyLPMock_PluginArtifact = await ethers.getContractFactory("SolidlyLPMockPlugin");
         const LP0_SolidlyLPMock_PluginContract = await LP0_SolidlyLPMock_PluginArtifact.deploy(LP0.address, OTOKEN.address, voter.address, [TEST2.address, BASE.address], [TEST2.address, BASE.address], "Protocol1");
-        plugin2 = await ethers.getContractAt("SolidlyLPMock_Plugin", LP0_SolidlyLPMock_PluginContract.address);
+        plugin2 = await ethers.getContractAt("SolidlyLPMockPlugin", LP0_SolidlyLPMock_PluginContract.address);
         console.log("- LP0_SolidityLPMock_Plugin Initialized");
 
         // initialize SolidlyLPMock_Plugin for LP1
-        const LP1_SolidlyLPMock_PluginArtifact = await ethers.getContractFactory("SolidlyLPMock_Plugin");
+        const LP1_SolidlyLPMock_PluginArtifact = await ethers.getContractFactory("SolidlyLPMockPlugin");
         const LP1_SolidlyLPMock_PluginContract = await LP1_SolidlyLPMock_PluginArtifact.deploy(LP1.address, OTOKEN.address, voter.address, [TEST3.address, BASE.address], [TEST3.address, BASE.address], "Protocol1");
-        plugin3 = await ethers.getContractAt("SolidlyLPMock_Plugin", LP1_SolidlyLPMock_PluginContract.address);
+        plugin3 = await ethers.getContractAt("SolidlyLPMockPlugin", LP1_SolidlyLPMock_PluginContract.address);
         console.log("- LP1_SolidityLPMock_Plugin Initialized");
 
         // add TEST0 in xTEST0 Plugin to Voter
@@ -347,7 +353,7 @@ describe("test1", function () {
 
     it("User0 emergency exits", async function () {
         console.log("******************************************************");
-        await VTOKEN.connect(user0).emergencyExit();
+        await VTOKEN.connect(user0).withdraw(await VTOKEN.balanceOfTOKEN(user0.address));
     });
 
     it("BondingCurveData, user0", async function () {
@@ -393,7 +399,7 @@ describe("test1", function () {
 
     it("User0 emergency exits", async function () {
         console.log("******************************************************");
-        await expect(VTOKEN.connect(user0).emergencyExit()).to.be.revertedWith("VTOKEN__CollateralActive");
+        await expect(VTOKEN.connect(user0).withdraw(await VTOKEN.balanceOfTOKEN(user0.address))).to.be.revertedWith("VTOKEN__CollateralActive");
     });
 
     it("BondingCurveData, user0", async function () {
@@ -434,7 +440,7 @@ describe("test1", function () {
 
     it("User0 emergency exits", async function () {
         console.log("******************************************************");
-        await expect(VTOKEN.connect(user0).emergencyExit()).to.be.revertedWith("VTOKEN__VotingWeightActive");
+        await expect(VTOKEN.connect(user0).withdraw(await VTOKEN.balanceOfTOKEN(user0.address))).to.be.revertedWith("VTOKEN__VotingWeightActive");
     });
 
     it("Forward time by 7 days", async function () {
@@ -445,9 +451,9 @@ describe("test1", function () {
 
     it("User0 emergency exits", async function () {
         console.log("******************************************************");
-        await expect(VTOKEN.connect(user0).emergencyExit()).to.be.revertedWith("VTOKEN__VotingWeightActive");
+        await expect(VTOKEN.connect(user0).withdraw(await VTOKEN.balanceOfTOKEN(user0.address))).to.be.revertedWith("VTOKEN__VotingWeightActive");
         await voter.connect(user0).reset();
-        await expect(VTOKEN.connect(user0).emergencyExit()).to.be.revertedWith("VTOKEN__CollateralActive");
+        await expect(VTOKEN.connect(user0).withdraw(await VTOKEN.balanceOfTOKEN(user0.address))).to.be.revertedWith("VTOKEN__CollateralActive");
     });
 
     it("User0 repays max BASE", async function () {
@@ -458,7 +464,7 @@ describe("test1", function () {
 
     it("User0 emergency exits", async function () {
         console.log("******************************************************");
-        await VTOKEN.connect(user0).emergencyExit();
+        await VTOKEN.connect(user0).withdraw(await VTOKEN.balanceOfTOKEN(user0.address));
     });
 
     it("BondingCurveData, user0", async function () {
@@ -592,7 +598,7 @@ describe("test1", function () {
         console.log("******************************************************");
         console.log("TEST0 Balance in xTEST0: ", divDec(await TEST0.balanceOf(xTEST0.address)), await TEST0.balanceOf(xTEST0.address));
         console.log("xTEST0 Balance in plugin0: ", divDec(await xTEST0.balanceOf(plugin0.address)), await xTEST0.balanceOf(plugin0.address));
-        await plugin0.connect(user2).emergencyExit();
+        await plugin0.connect(user2).withdrawTo(user2.address, await plugin0.balanceOf(user2.address));
     });
 
     it("User2 deposits in plugin0", async function () {
@@ -611,7 +617,7 @@ describe("test1", function () {
         console.log("******************************************************");
         console.log("TEST0 Balance in xTEST0: ", divDec(await TEST0.balanceOf(xTEST0.address)), await TEST0.balanceOf(xTEST0.address));
         console.log("xTEST0 Balance in plugin0: ", divDec(await xTEST0.balanceOf(plugin0.address)), await xTEST0.balanceOf(plugin0.address));
-        await plugin0.connect(user2).emergencyExit();
+        await plugin0.connect(user2).withdrawTo(user2.address, await plugin0.balanceOf(user2.address));
     });
 
     it("GaugeCardData, plugin0, user2", async function () {
@@ -672,7 +678,7 @@ describe("test1", function () {
         await expect(plugin0.connect(user2).depositFor(user2.address, 0)).to.be.revertedWith("Plugin__InvalidZeroInput");
         await plugin3.getUnderlyingName();
         await plugin2.getGauge();
-        await plugin2.getPrice();
+        await multicall.getPrice(LP0.address);
     });
 
     it("User1 Buys TOKEN with 10 BASE", async function () {

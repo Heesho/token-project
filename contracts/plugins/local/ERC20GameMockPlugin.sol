@@ -3,15 +3,11 @@ pragma solidity 0.8.19;
 
 import 'contracts/Plugin.sol';
 
-interface ISolidlyLPMock {
-    function price() external view returns (uint256);
-}
-
 interface IERC20Mock {
     function mint(address _to, uint256 _amount) external;
 }
 
-contract SolidlyLPMock_Plugin is Plugin {
+contract ERC20GameMockPlugin is Plugin {
     using SafeERC20 for IERC20;
 
     /*----------  STATE VARIABLES  --------------------------------------*/
@@ -61,9 +57,5 @@ contract SolidlyLPMock_Plugin is Plugin {
     /*----------  RESTRICTED FUNCTIONS  ---------------------------------*/
 
     /*----------  VIEW FUNCTIONS  ---------------------------------------*/
-
-    function getPrice() public view override returns (uint256) {
-        return ISolidlyLPMock(getUnderlyingAddress()).price();
-    }
 
 }

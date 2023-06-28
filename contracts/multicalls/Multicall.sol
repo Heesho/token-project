@@ -10,6 +10,10 @@ import "contracts/interfaces/IBribe.sol";
 import "contracts/interfaces/IVoter.sol";
 import "contracts/interfaces/IPlugin.sol";
 
+interface IPriceOracle {
+    function getPrice(address _token) external view returns (uint256);
+}
+
 contract Multicall {
 
     /*----------  CONSTANTS  --------------------------------------------*/
@@ -27,7 +31,7 @@ contract Multicall {
     address public immutable VTOKEN;
     address public immutable rewarder;
 
-    uint256 public priceBASE;
+    address public priceOracle; 
 
     struct SwapCard {
         uint256 frBASE;
@@ -130,11 +134,15 @@ contract Multicall {
         rewarder = _rewarder;
     }
 
-    function setPriceBase(uint256 _priceBASE) external {
-        priceBASE = _priceBASE;
+    function setPriceOracle(address _priceOracle) external {
+        priceOracle = _priceOracle;
     }
 
     /*----------  VIEW FUNCTIONS  ---------------------------------------*/
+
+    function getPrice(address _token) external view returns (uint256) {
+        return IPriceOracle(priceOracle).getPrice(_token);
+    }
 
     function swapCardData() external view returns (SwapCard memory swapCard) {
         swapCard.frBASE = ITOKEN(TOKEN).frBASE();
@@ -147,7 +155,7 @@ contract Multicall {
     }
 
     function bondingCurveData(address account) external view returns (BondingCurve memory bondingCurve) {
-        bondingCurve.priceBASE = priceBASE;
+        bondingCurve.priceBASE = IPriceOracle(priceOracle).getPrice(BASE);
         bondingCurve.priceTOKEN = ITOKEN(TOKEN).getMarketPrice() * bondingCurve.priceBASE / 1e18;
         bondingCurve.priceOTOKEN = ITOKEN(TOKEN).getOTokenPrice() * bondingCurve.priceBASE / 1e18;
         bondingCurve.maxMarketSell = ITOKEN(TOKEN).getMaxSell();
@@ -192,8 +200,8 @@ contract Multicall {
         gaugeCard.symbol = IPlugin(plugin).getUnderlyingSymbol();
         gaugeCard.tokensInUnderlying = IPlugin(plugin).getTokensInUnderlying();
 
-        gaugeCard.priceUnderlying = IPlugin(plugin).getPrice();
-        gaugeCard.priceOTOKEN = ITOKEN(TOKEN).getOTokenPrice() * (priceBASE) / 1e18;
+        gaugeCard.priceUnderlying = IPriceOracle(priceOracle).getPrice(gaugeCard.underlying);
+        gaugeCard.priceOTOKEN = ITOKEN(TOKEN).getOTokenPrice() * (IPriceOracle(priceOracle).getPrice(BASE)) / 1e18;
         
         gaugeCard.apr = IGauge(gaugeCard.gauge).totalSupply() == 0 ? 0 : (IGauge(IVoter(voter).gauges(plugin)).getRewardForDuration(OTOKEN) * gaugeCard.priceOTOKEN * 365 * 100 / 7 / (gaugeCard.priceUnderlying * IGauge(gaugeCard.gauge).totalSupply() / 1e18));
         gaugeCard.tvl = IGauge(IVoter(voter).gauges(plugin)).totalSupply() * gaugeCard.priceUnderlying / 1e18;
