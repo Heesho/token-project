@@ -26,7 +26,7 @@ abstract contract SpiritV2Pair_Plugin is Plugin {
 
     /*----------  CONSTANTS  --------------------------------------------*/
 
-    address public constant ROUTER = 0x2aa07920E4ecb4ea8C801D9DFEce63875623B285;0
+    address public constant ROUTER = 0x2aa07920E4ecb4ea8C801D9DFEce63875623B285;
 
     /*----------  STATE VARIABLES  --------------------------------------*/
 
