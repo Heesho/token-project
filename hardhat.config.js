@@ -48,12 +48,12 @@ module.exports = {
         url: "https://rpc.ftm.tools",
       },
     },
-    // mainnet: {
-    //   url:
-    //   "https://rpc.ftm.tools/",
-    //   chainId: 250,
-    //   accounts: [PRIVATE_KEY],
-    // },
+    mainnet: {
+      url:
+      "https://rpc.ftm.tools/",
+      chainId: 250,
+      accounts: [PRIVATE_KEY],
+    },
     // mainnet: {
     //   url:'https://arb1.arbitrum.io/rpc',
     //   browserURL: "https://arbiscan.io/",
