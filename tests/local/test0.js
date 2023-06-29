@@ -27,7 +27,6 @@ let TEST1, xTEST1, plugin1, gauge1, bribe1;
 let TEST2, LP0, plugin2, gauge2, bribe2;
 let TEST3, LP1, plugin3, gauge3, bribe3;
 
-
 describe("test0", function () {
     before("Initial set up", async function () {
         console.log("Begin Initialization");
@@ -2843,6 +2842,8 @@ describe("test0", function () {
         await network.provider.send("evm_mine");
     
         await bribe0.left(xTEST0.address);
+        await bribe0.balanceOf(user0.address);
+        await rewarder.balanceOf(user0.address);
     
         await expect(bribe0.connect(user1).addReward(BASE.address)).to.be.revertedWith("Bribe__NotAuthorizedVoter");
         await expect(voter.connect(owner).addBribeReward(bribe0.address, xTEST0.address)).to.be.revertedWith("Bribe__RewardTokenAlreadyAdded");
