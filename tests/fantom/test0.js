@@ -12,8 +12,10 @@ const AddressZero = "0x0000000000000000000000000000000000000000";
 const one = convert("1", 18);
 const two = convert("2", 18);
 const five = convert("5", 18);
+const nine = convert("9", 18);
 const ten = convert("10", 18);
 const twenty = convert("20", 18);
+const fifty = convert("50", 18);
 const ninety = convert("90", 18);
 const oneHundred = convert("100", 18);
 const twoHundred = convert("200", 18);
@@ -107,21 +109,18 @@ describe.only("test0", function () {
         response = await axios.get(WFTM_URL);
         const WFTM_ABI = JSON.parse(response.data.result);
         WFTM = new ethers.Contract(WFTM_ADDR, WFTM_ABI, provider);
-        await timer(1000);
         console.log("- WFTM Initialized");
 
         // USDC
         response = await axios.get(USDC_URL);
         const USDC_ABI = JSON.parse(response.data.result);
         USDC = new ethers.Contract(USDC_ADDR, USDC_ABI, provider);
-        await timer(1000);
         console.log("- USDC Initialized");
 
         // EQUAL
         response = await axios.get(EQUAL_URL);
         const EQUAL_ABI = JSON.parse(response.data.result);
         EQUAL = new ethers.Contract(EQUAL_ADDR, EQUAL_ABI, provider);
-        await timer(1000);
         console.log("- EQUAL Initialized");
 
         // BOO
@@ -135,21 +134,18 @@ describe.only("test0", function () {
         response = await axios.get(BEETS_URL);
         const BEETS_ABI = JSON.parse(response.data.result);
         BEETS = new ethers.Contract(BEETS_ADDR, BEETS_ABI, provider);
-        await timer(1000);
         console.log("- BEETS Initialized");
 
         // SpiritRouter
         response = await axios.get(SPIRIT_ROUTER_URL);
         const SPIRIT_ROUTER_ABI = JSON.parse(response.data.result);
         spiritRouter = new ethers.Contract(SPIRIT_ROUTER_ADDR, SPIRIT_ROUTER_ABI, provider);
-        await timer(1000);
         console.log("- SpiritRouter Initialized");
 
         // SpookyRouter
         response = await axios.get(SPOOKY_ROUTER_URL);
         const SPOOKY_ROUTER_ABI = JSON.parse(response.data.result);
         spookyRouter = new ethers.Contract(SPOOKY_ROUTER_ADDR, SPOOKY_ROUTER_ABI, provider);
-        await timer(1000);
         console.log("- SpookyRouter Initialized");
 
         // EqualizerRouter
@@ -163,21 +159,18 @@ describe.only("test0", function () {
         response = await axios.get(BEETS_ROUTER_URL);
         const BEETS_ROUTER_ABI = JSON.parse(response.data.result);
         beetsRouter = new ethers.Contract(BEETS_ROUTER_ADDR, BEETS_ROUTER_ABI, provider);
-        await timer(1000);
         console.log("- BeetsRouter Initialized");
 
         // LP0
         response = await axios.get(LP0_URL);
         const LP0_ABI = JSON.parse(response.data.result);
         LP0 = new ethers.Contract(LP0_ADDR, LP0_ABI, provider);
-        await timer(1000);
         console.log("- LP0 Initialized");
 
         // LP1
         response = await axios.get(LP1_URL);
         const LP1_ABI = JSON.parse(response.data.result);
         LP1 = new ethers.Contract(LP1_ADDR, LP1_ABI, provider);
-        await timer(1000);
         console.log("- LP1 Initialized");
 
         // LP2
@@ -191,12 +184,7 @@ describe.only("test0", function () {
         response = await axios.get(LP3_URL);
         const LP3_ABI = JSON.parse(response.data.result);
         LP3 = new ethers.Contract(LP3_ADDR, LP3_ABI, provider);
-        await timer(1000);
         console.log("- LP3 Initialized");
-  
-        // initialize ERC20Mocks
-        const ERC20MockArtifact = await ethers.getContractFactory("ERC20Mock");
-        console.log("- ERC20Mocks Initialized");
 
         // initialize OTOKENFactory
         const OTOKENFactoryArtifact = await ethers.getContractFactory("OTOKENFactory");
@@ -349,14 +337,393 @@ describe.only("test0", function () {
         bribe3 = await ethers.getContractAt("contracts/BribeFactory.sol:Bribe", bribe3Addr);
         console.log("- Plugin3 added to Voter");
 
-
         console.log("Initialization Complete");
         console.log();
 
     });
 
-    it("First Test", async function () {
+    it("multsig and treasury deposit 9000 FTM to WFTM and transfer WFTM to owner", async function () {
         console.log("******************************************************");
+        await WFTM.connect(multisig).deposit({value: ethers.utils.parseEther("9000")});
+        await WFTM.connect(treasury).deposit({value: ethers.utils.parseEther("9000")});
+        await WFTM.connect(multisig).transfer(owner.address, ethers.utils.parseEther("9000"));
+        await WFTM.connect(treasury).transfer(owner.address, ethers.utils.parseEther("9000"));
+    });
+
+    it("Owner Buys TOKEN with 10 BASE", async function () {
+        console.log("******************************************************");
+        await WFTM.connect(owner).approve(TOKEN.address, ten);
+        await TOKEN.connect(owner).buy(ten, 1, 1792282187, owner.address, AddressZero);
+    });
+
+    it("Owner sells max TOKEN", async function () {
+        console.log("******************************************************");
+        let balance = await TOKEN.getMaxSell();
+        console.log("Max market sell: ", divDec(balance));
+        await TOKEN.connect(owner).approve(TOKEN.address, balance);
+        await TOKEN.connect(owner).sell(balance, 1, 1792282187, owner.address, AddressZero);
+    });
+
+    it("SwapCardData", async function () {
+        console.log("******************************************************");
+        let res = await multicall.connect(owner).swapCardData();
+        console.log("Floor Reserve BASE: ", divDec(res.frBASE));
+        console.log("Market Reserve Virtual BASE: ", divDec(res.mrvBASE));
+        console.log("Market Reserve Real BASE: ", divDec(res.mrrBASE));
+        console.log("Market Reserve Real TOKEN: ", divDec(res.mrrTOKEN));
+        console.log("Market Reserve Max TOKEN: ", divDec(res.marketMaxTOKEN));
+        console.log()
+        console.log("Market Reserve Real BASE: ", divDec(res.mrrBASE) ,res.mrrBASE);
+        console.log("Market Reserve Real TOKEN: ", divDec(res.mrrTOKEN), res.mrrTOKEN);
+        console.log("Market Reserve Actual BASE: ", divDec(await WFTM.connect(owner).balanceOf(TOKEN.address)), await WFTM.connect(owner).balanceOf(TOKEN.address));
+        console.log("Market Reserve Actual TOKEN: ", divDec(await TOKEN.connect(owner).balanceOf(TOKEN.address)), await TOKEN.connect(owner).balanceOf(TOKEN.address));
+    });
+
+    it("Owner Buys TOKEN with 10 BASE", async function () {
+        console.log("******************************************************");
+        await WFTM.connect(owner).approve(TOKEN.address, ten);
+        await TOKEN.connect(owner).buy(ten, 1, 1792282187, owner.address, AddressZero);
+    });
+
+    it("SwapCardData", async function () {
+        console.log("******************************************************");
+        let res = await multicall.connect(owner).swapCardData();
+        console.log("Floor Reserve BASE: ", divDec(res.frBASE));
+        console.log("Market Reserve Virtual BASE: ", divDec(res.mrvBASE));
+        console.log("Market Reserve Real BASE: ", divDec(res.mrrBASE));
+        console.log("Market Reserve Real TOKEN: ", divDec(res.mrrTOKEN));
+        console.log("Market Reserve Max TOKEN: ", divDec(res.marketMaxTOKEN));
+        console.log()
+        console.log("Market Reserve Real BASE: ", divDec(res.mrrBASE) ,res.mrrBASE);
+        console.log("Market Reserve Real TOKEN: ", divDec(res.mrrTOKEN), res.mrrTOKEN);
+        let reserveActBASE = await WFTM.connect(owner).balanceOf(TOKEN.address);
+        let reserveActTOKEN = await TOKEN.connect(owner).balanceOf(TOKEN.address);
+        console.log("Market Reserve Actual BASE: ", divDec(reserveActBASE), reserveActBASE);
+        console.log("Market Reserve Actual TOKEN: ", divDec(reserveActTOKEN), reserveActTOKEN);
+        expect(res.mrrBASE).to.equal((reserveActBASE).add(await TOKEN.debtTotal()).sub(res.frBASE));
+        expect(res.mrrTOKEN).to.equal(reserveActTOKEN);
+    });
+
+    it("Owner stakes 1 TOKEN", async function () {
+        console.log("******************************************************");
+        await TOKEN.connect(owner).approve(VTOKEN.address, one);
+        await VTOKEN.connect(owner).deposit(one);
+    }); 
+
+    it("Owner sells all TOKEN", async function () {
+        console.log("******************************************************");
+        let balance = await TOKEN.connect(owner).balanceOf(owner.address);
+        await TOKEN.connect(owner).approve(TOKEN.address, balance);
+        await TOKEN.connect(owner).sell(balance, 1, 1792282187, owner.address, AddressZero);
+    });
+
+    it("Owner borrows max against staked position", async function () {
+        console.log("******************************************************");
+        await TOKEN.connect(owner).borrow(await TOKEN.getAccountCredit(owner.address));
+    });
+
+    it("SwapCardData", async function () {
+        console.log("******************************************************");
+        let res = await multicall.connect(owner).swapCardData();
+        console.log("Floor Reserve BASE: ", divDec(res.frBASE));
+        console.log("Market Reserve Virtual BASE: ", divDec(res.mrvBASE));
+        console.log("Market Reserve Real BASE: ", divDec(res.mrrBASE));
+        console.log("Market Reserve Real TOKEN: ", divDec(res.mrrTOKEN));
+        console.log("Market Reserve Max TOKEN: ", divDec(res.marketMaxTOKEN));
+        console.log()
+        console.log("Market Reserve Real BASE: ", divDec(res.mrrBASE) ,res.mrrBASE);
+        console.log("Market Reserve Real TOKEN: ", divDec(res.mrrTOKEN), res.mrrTOKEN);
+        let reserveActBASE = await WFTM.connect(owner).balanceOf(TOKEN.address);
+        let reserveActTOKEN = await TOKEN.connect(owner).balanceOf(TOKEN.address);
+        console.log("Market Reserve Actual BASE: ", divDec(reserveActBASE), reserveActBASE);
+        console.log("Market Reserve Actual TOKEN: ", divDec(reserveActTOKEN), reserveActTOKEN);
+        expect(res.mrrBASE).to.equal((reserveActBASE).add(await TOKEN.debtTotal()).sub(res.frBASE));
+        expect(res.mrrTOKEN).to.equal(reserveActTOKEN);
+    });
+
+    it("Owner tries unstakes all VTOKEN", async function () {
+        console.log("******************************************************");
+        await expect(VTOKEN.connect(owner).withdraw(0)).to.be.revertedWith("VTOKEN__InvalidZeroInput");
+        await expect(VTOKEN.connect(owner).withdraw(await VTOKEN.balanceOf(owner.address))).to.be.revertedWith("VTOKEN__CollateralActive");
+    });
+
+    it("Owner tries to repay more than owed", async function () {
+        console.log("******************************************************");
+        await WFTM.connect(owner).approve(TOKEN.address, two);
+        await expect(TOKEN.connect(owner).repay(0)).to.be.revertedWith("TOKEN__InvalidZeroInput");
+        await expect(TOKEN.connect(owner).repay(two)).to.be.reverted;;
+    });
+
+    it("SwapCardData", async function () {
+        console.log("******************************************************");
+        let res = await multicall.connect(owner).swapCardData();
+        console.log("Floor Reserve BASE: ", divDec(res.frBASE));
+        console.log("Market Reserve Virtual BASE: ", divDec(res.mrvBASE));
+        console.log("Market Reserve Real BASE: ", divDec(res.mrrBASE));
+        console.log("Market Reserve Real TOKEN: ", divDec(res.mrrTOKEN));
+        console.log("Market Reserve Max TOKEN: ", divDec(res.marketMaxTOKEN));
+        console.log()
+        console.log("Market Reserve Real BASE: ", divDec(res.mrrBASE) ,res.mrrBASE);
+        console.log("Market Reserve Real TOKEN: ", divDec(res.mrrTOKEN), res.mrrTOKEN);
+        let reserveActBASE = await WFTM.connect(owner).balanceOf(TOKEN.address);
+        let reserveActTOKEN = await TOKEN.connect(owner).balanceOf(TOKEN.address);
+        console.log("Market Reserve Actual BASE: ", divDec(reserveActBASE), reserveActBASE);
+        console.log("Market Reserve Actual TOKEN: ", divDec(reserveActTOKEN), reserveActTOKEN);
+        expect(res.mrrBASE).to.equal((reserveActBASE).add(await TOKEN.debtTotal()).sub(res.frBASE));
+        expect(res.mrrTOKEN).to.equal(reserveActTOKEN);
+    });
+
+    it("Owner Buys TOKEN with 20 BASE", async function () {
+        console.log("******************************************************");
+        await WFTM.connect(owner).approve(TOKEN.address, twenty);
+        await TOKEN.connect(owner).buy(twenty, 1, 1792282187, owner.address, AddressZero);
+    });
+
+    it("Owner stakes 9 TOKEN", async function () {
+        console.log("******************************************************");
+        await TOKEN.connect(owner).approve(VTOKEN.address, nine);
+        await VTOKEN.connect(owner).deposit(nine);
+    }); 
+
+    it("Owner sells all TOKEN", async function () {
+        console.log("******************************************************");
+        let balance = await TOKEN.connect(owner).balanceOf(owner.address);
+        await TOKEN.connect(owner).approve(TOKEN.address, balance);
+        await TOKEN.connect(owner).sell(balance, 1, 1792282187, owner.address, AddressZero);
+    });
+
+    it("Owner tries to borrow more than credit against staked position", async function () {
+        console.log("******************************************************");
+        await expect(TOKEN.connect(owner).borrow(twenty)).to.be.revertedWith("TOKEN__ExceedsBorrowCreditLimit");
+        await expect(TOKEN.connect(owner).borrow(0)).to.be.revertedWith("TOKEN__InvalidZeroInput");
+    });
+
+    it("Owner borrows portion of credit limit then borrows max", async function () {
+        console.log("******************************************************");
+        await TOKEN.connect(owner).borrow(one);
+        await TOKEN.connect(owner).borrow(await TOKEN.getAccountCredit(owner.address));
+    });
+
+    it("SwapCardData", async function () {
+        console.log("******************************************************");
+        let res = await multicall.connect(owner).swapCardData();
+        console.log("Floor Reserve BASE: ", divDec(res.frBASE));
+        console.log("Market Reserve Virtual BASE: ", divDec(res.mrvBASE));
+        console.log("Market Reserve Real BASE: ", divDec(res.mrrBASE));
+        console.log("Market Reserve Real TOKEN: ", divDec(res.mrrTOKEN));
+        console.log("Market Reserve Max TOKEN: ", divDec(res.marketMaxTOKEN));
+        console.log()
+        console.log("Market Reserve Real BASE: ", divDec(res.mrrBASE) ,res.mrrBASE);
+        console.log("Market Reserve Real TOKEN: ", divDec(res.mrrTOKEN), res.mrrTOKEN);
+        let reserveActBASE = await WFTM.connect(owner).balanceOf(TOKEN.address);
+        let reserveActTOKEN = await TOKEN.connect(owner).balanceOf(TOKEN.address);
+        console.log("Market Reserve Actual BASE: ", divDec(reserveActBASE), reserveActBASE);
+        console.log("Market Reserve Actual TOKEN: ", divDec(reserveActTOKEN), reserveActTOKEN);
+        expect(res.mrrBASE).to.equal((reserveActBASE).add(await TOKEN.debtTotal()).sub(res.frBASE));
+        expect(res.mrrTOKEN).to.equal(reserveActTOKEN);
+    });
+
+    it("Owner tries to repays two then repays max", async function () {
+        console.log("******************************************************");
+        await WFTM.connect(owner).approve(TOKEN.address, two);
+        await TOKEN.connect(owner).repay(two);
+        let balance = TOKEN.connect(owner).debts(owner.address);
+        await WFTM.connect(owner).approve(TOKEN.address, balance);
+        await TOKEN.connect(owner).repay(balance);
+    });
+
+    it("User0 exercises 10 OTOKEN", async function () {
+        console.log("******************************************************");
+        await OTOKEN.connect(owner).approve(TOKEN.address, ten);
+        await WFTM.connect(owner).approve(TOKEN.address, ten);
+        await TOKEN.connect(owner).exercise(ten, owner.address);
+    });
+
+    it("User0 exercises 10 OTOKEN without 10 OTOKEN", async function () {
+        console.log("******************************************************");
+        await OTOKEN.connect(owner).transfer(multisig.address, await OTOKEN.balanceOf(owner.address));
+        await OTOKEN.connect(owner).approve(TOKEN.address, ten);
+        await WFTM.connect(owner).approve(TOKEN.address, ten);
+        await expect(TOKEN.connect(owner).exercise(ten, owner.address)).to.be.reverted;
+        await OTOKEN.connect(multisig).transfer(owner.address, await OTOKEN.balanceOf(multisig.address));
+    });
+
+    it("User0 exercises 10 OTOKEN without WFTM", async function () {
+        console.log("******************************************************");
+        await WFTM.connect(owner).transfer(multisig.address, await WFTM.connect(owner).balanceOf(owner.address));
+        await OTOKEN.connect(owner).approve(TOKEN.address, ten);
+        await WFTM.connect(owner).approve(TOKEN.address, ten);
+        await expect(TOKEN.connect(owner).exercise(ten, owner.address)).to.be.reverted;
+        await WFTM.connect(multisig).transfer(owner.address, await WFTM.connect(owner).balanceOf(multisig.address));
+    });
+
+    it("User0 exercises 20 OTOKEN", async function () {
+        console.log("******************************************************");
+        await OTOKEN.connect(owner).approve(TOKEN.address, twenty);
+        await WFTM.connect(owner).approve(TOKEN.address, twenty);
+        await TOKEN.connect(owner).exercise(twenty, owner.address);
+    });
+
+    it("Owner tries sell more TOKEN than what's available", async function () {
+        console.log("******************************************************");
+        let balance = await TOKEN.connect(owner).balanceOf(owner.address);
+        await TOKEN.connect(owner).approve(TOKEN.address, balance);
+        await expect(TOKEN.connect(owner).sell(balance, 1, 1792282187, owner.address, AddressZero)).to.be.revertedWith("TOKEN__ExceedsSwapMarketReserves");
+    });
+
+    it("Owner sells max TOKEN", async function () {
+        console.log("******************************************************");
+        let balance = await TOKEN.getMaxSell();
+        console.log("Max market sell: ", divDec(balance));
+        await TOKEN.connect(owner).approve(TOKEN.address, balance);
+        await TOKEN.connect(owner).sell(balance, 1, 1792282187, owner.address, AddressZero);
+    });
+
+    it("SwapCardData", async function () {
+        console.log("******************************************************");
+        let res = await multicall.connect(owner).swapCardData();
+        console.log("Floor Reserve BASE: ", divDec(res.frBASE));
+        console.log("Market Reserve Virtual BASE: ", divDec(res.mrvBASE));
+        console.log("Market Reserve Real BASE: ", divDec(res.mrrBASE));
+        console.log("Market Reserve Real TOKEN: ", divDec(res.mrrTOKEN));
+        console.log("Market Reserve Max TOKEN: ", divDec(res.marketMaxTOKEN));
+        console.log()
+        console.log("Market Reserve Real BASE: ", divDec(res.mrrBASE) ,res.mrrBASE);
+        console.log("Market Reserve Real TOKEN: ", divDec(res.mrrTOKEN), res.mrrTOKEN);
+        let reserveActBASE = await WFTM.connect(owner).balanceOf(TOKEN.address);
+        let reserveActTOKEN = await TOKEN.connect(owner).balanceOf(TOKEN.address);
+        console.log("Market Reserve Actual BASE: ", divDec(reserveActBASE), reserveActBASE);
+        console.log("Market Reserve Actual TOKEN: ", divDec(reserveActTOKEN), reserveActTOKEN);
+        expect(res.mrrBASE).to.equal((reserveActBASE).add(await TOKEN.debtTotal()).sub(res.frBASE));
+        expect(res.mrrTOKEN).to.equal(reserveActTOKEN);
+    });
+
+    it("Owner tries unstakes all VTOKEN", async function () {
+        console.log("******************************************************");
+        await VTOKEN.connect(owner).withdraw(await VTOKEN.balanceOfTOKEN(owner.address));
+    });
+
+    it("Owner redeems all TOKEN to BASE", async function () {
+        console.log("******************************************************");
+        await TOKEN.connect(owner).approve(TOKEN.address, fifty);
+        await expect(TOKEN.connect(owner).redeem(0, owner.address)).to.be.revertedWith("TOKEN__InvalidZeroInput");
+        await expect(TOKEN.connect(owner).redeem(fifty, owner.address)).to.be.reverted;
+        await TOKEN.connect(owner).redeem(await TOKEN.balanceOf(owner.address), owner.address);
+    });
+
+    it("SwapCardData", async function () {
+        console.log("******************************************************");
+        let res = await multicall.connect(owner).swapCardData();
+        console.log("Floor Reserve BASE: ", divDec(res.frBASE));
+        console.log("Market Reserve Virtual BASE: ", divDec(res.mrvBASE));
+        console.log("Market Reserve Real BASE: ", divDec(res.mrrBASE));
+        console.log("Market Reserve Real TOKEN: ", divDec(res.mrrTOKEN));
+        console.log("Market Reserve Max TOKEN: ", divDec(res.marketMaxTOKEN));
+        console.log()
+        console.log("Market Reserve Real BASE: ", divDec(res.mrrBASE) ,res.mrrBASE);
+        console.log("Market Reserve Real TOKEN: ", divDec(res.mrrTOKEN), res.mrrTOKEN);
+        let reserveActBASE = await WFTM.connect(owner).balanceOf(TOKEN.address);
+        let reserveActTOKEN = await TOKEN.connect(owner).balanceOf(TOKEN.address);
+        console.log("Market Reserve Actual BASE: ", divDec(reserveActBASE), reserveActBASE);
+        console.log("Market Reserve Actual TOKEN: ", divDec(reserveActTOKEN), reserveActTOKEN);
+        expect(res.mrrBASE).to.equal((reserveActBASE).add(await TOKEN.debtTotal()).sub(res.frBASE));
+        expect(res.mrrTOKEN).to.equal(reserveActTOKEN);
+    });
+
+    it("Owner Buys TOKEN with 10 BASE", async function () {
+        console.log("******************************************************");
+        await WFTM.connect(owner).approve(TOKEN.address, ten);
+        await TOKEN.connect(owner).buy(ten, 1, 1792282187, owner.address, AddressZero);
+    });
+
+    it("Owner stakes max TOKEN", async function () {
+        console.log("******************************************************");
+        await TOKEN.connect(owner).approve(VTOKEN.address, await TOKEN.balanceOf(owner.address));
+        await VTOKEN.connect(owner).deposit(await TOKEN.balanceOf(owner.address));
+    }); 
+
+    it("Owner borrows max against staked position", async function () {
+        console.log("******************************************************");
+        await TOKEN.connect(owner).borrow(await TOKEN.getAccountCredit(owner.address));
+    });
+
+    it("Owner burns 10 OTOKEN to increase Voting power", async function () {
+        console.log("******************************************************");
+        await OTOKEN.connect(owner).approve(VTOKEN.address, ten);
+        await expect(VTOKEN.connect(owner).burnFor(owner.address, 0)).to.be.revertedWith("VTOKEN__InvalidZeroInput");
+        await expect(VTOKEN.connect(owner).burnFor(AddressZero, ten)).to.be.revertedWith("VTOKEN__InvalidZeroAddress");
+        await VTOKEN.connect(owner).burnFor(owner.address, ten);
+    });
+
+    it("Owner tries to borrow one more BASE", async function () {
+        console.log("******************************************************");
+        await expect(TOKEN.connect(owner).borrow(one)).to.be.revertedWith("TOKEN__ExceedsBorrowCreditLimit");
+    });
+
+    it("Owner call distributeFees", async function () {
+        console.log("******************************************************");
+        await OTOKEN.connect(owner).transfer(fees.address, ten);
+        await fees.distribute();
+    });
+
+    it("Forward 7 days", async function () {
+        console.log("******************************************************");
+        await network.provider.send("evm_increaseTime", [7 * 24 * 3600]);
+        await network.provider.send("evm_mine");
+    });
+
+    it("Owner claims rewards", async function () {
+        console.log("******************************************************");
+        await rewarder.connect(owner).getReward(owner.address);
+    });
+    
+    it("SwapCardData", async function () {
+        console.log("******************************************************");
+        let res = await multicall.connect(owner).swapCardData();
+        console.log("Floor Reserve BASE: ", divDec(res.frBASE));
+        console.log("Market Reserve Virtual BASE: ", divDec(res.mrvBASE));
+        console.log("Market Reserve Real BASE: ", divDec(res.mrrBASE));
+        console.log("Market Reserve Real TOKEN: ", divDec(res.mrrTOKEN));
+        console.log("Market Reserve Max TOKEN: ", divDec(res.marketMaxTOKEN));
+        console.log()
+        console.log("Market Reserve Real BASE: ", divDec(res.mrrBASE) ,res.mrrBASE);
+        console.log("Market Reserve Real TOKEN: ", divDec(res.mrrTOKEN), res.mrrTOKEN);
+        let reserveActBASE = await WFTM.connect(owner).balanceOf(TOKEN.address);
+        let reserveActTOKEN = await TOKEN.connect(owner).balanceOf(TOKEN.address);
+        console.log("Market Reserve Actual BASE: ", divDec(reserveActBASE), reserveActBASE);
+        console.log("Market Reserve Actual TOKEN: ", divDec(reserveActTOKEN), reserveActTOKEN);
+        expect(res.mrrBASE).to.equal((reserveActBASE).add(await TOKEN.debtTotal()).sub(res.frBASE));
+        expect(res.mrrTOKEN).to.equal(reserveActTOKEN);
+    });
+
+    it("BondingCurveData, owner", async function () {
+        console.log("******************************************************");
+        let res = await multicall.bondingCurveData(owner.address);
+        console.log("GLOBAL DATA");
+        console.log("Price BASE: $", divDec(res.priceBASE));
+        console.log("Price TOKEN: $", divDec(res.priceTOKEN));
+        console.log("Price OTOKEN: $", divDec(res.priceOTOKEN));
+        console.log("Total Value Locked: $", divDec(res.tvl));
+        console.log("TOKEN Supply: ", divDec(res.supplyTOKEN));
+        console.log("VTOKEN Supply: ", divDec(res.supplyVTOKEN));
+        console.log("APR: ", divDec(res.apr), "%");
+        console.log("Loan-to-Value: ", divDec(res.ltv), "%");
+        console.log("Ratio: ", divDec(res.ratio));
+        console.log();
+        console.log("ACCOUNT DATA");
+        console.log("Balance NATIVE: ", divDec(res.accountNATIVE));
+        console.log("Balance BASE: ", divDec(res.accountBASE));
+        console.log("Earned BASE: ", divDec(res.accountEarnedBASE));
+        console.log("Balance TOKEN: ", divDec(res.accountTOKEN));
+        console.log("Earned TOKEN: ", divDec(res.accountEarnedTOKEN));
+        console.log("Balance OTOKEN: ", divDec(res.accountOTOKEN));
+        console.log("Earned OTOKEN: ", divDec(res.accountEarnedOTOKEN));
+        console.log("Balance VTOKEN: ", divDec(res.accountVTOKEN));
+        console.log("Voting Power: ", divDec(res.accountVotingPower));
+        console.log("Used Voting Power: ", divDec(res.accountUsedWeights));
+        console.log("Borrow Credit: ", divDec(res.accountBorrowCredit), "BASE");
+        console.log("Borrow Debt: ", divDec(res.accountBorrowDebt), "BASE");
+        console.log("Max Withdraw: ", divDec(res.accountMaxWithdraw), "VTOKEN");
     });
 
 
