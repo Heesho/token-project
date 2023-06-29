@@ -24,9 +24,9 @@ interface IEqualizerPairToken {
 }
 
 interface IEqualizerGauge {
-    function deposit(uint256 _amount, uint256 tokenId) external;
+    function deposit(uint256 _amount) external;
     function withdraw(uint256 _amount) external;
-    function getReward(address _account, address[] memory _tokens) external;
+    function getReward() external;
 }
 
 contract EqualizerPairGaugePlugin is Plugin {
@@ -35,7 +35,7 @@ contract EqualizerPairGaugePlugin is Plugin {
     /*----------  CONSTANTS  --------------------------------------------*/
 
     address public constant ROUTER = 0x2aa07920E4ecb4ea8C801D9DFEce63875623B285;
-    address public constant EQUAL_VOTER = 0x4bebEB8188aEF8287f9a7d1E4f01d76cBE060d5b;
+    address public constant EQUAL_VOTER = 0xE3D1A117dF7DCaC2eB0AC8219341bAd92f18dAC1;
     address public constant EQUAL = 0x3Fd3A0c85B70754eFc07aC9Ac0cbBDCe664865A6;
 
     /*----------  STATE VARIABLES  --------------------------------------*/
@@ -80,7 +80,7 @@ contract EqualizerPairGaugePlugin is Plugin {
         super.depositFor(account, amount);
         IERC20(getUnderlyingAddress()).approve(address(gauge), 0);
         IERC20(getUnderlyingAddress()).approve(address(gauge), amount);
-        gauge.deposit(amount, 0);
+        gauge.deposit(amount);
     }
 
     function withdrawTo(address account, uint256 amount) 
@@ -96,7 +96,7 @@ contract EqualizerPairGaugePlugin is Plugin {
         override 
     {
         super.claimAndDistribute();
-        gauge.getReward(address(this), getBribeTokens());
+        gauge.getReward();
         address treasury = IVoter(getVoter()).treasury();
         uint256 balance = IERC20(EQUAL).balanceOf(address(this));
         if (balance > 0) {

@@ -47,6 +47,7 @@ module.exports = {
       forking: {
         url: "https://rpc.ftm.tools",
       },
+      blockNumber: 64862544,
     },
     mainnet: {
       url:

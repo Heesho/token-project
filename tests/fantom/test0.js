@@ -22,6 +22,8 @@ const twoHundred = convert("200", 18);
 const fiveHundred = convert("500", 18);
 const eightHundred = convert("800", 18);
 const oneThousand = convert("1000", 18);
+const fiveThousand = convert("5000", 18);
+const tenThousand = convert("10000", 18);
 
 function timer(t) {
     return new Promise((r) => setTimeout(r, t));
@@ -40,6 +42,10 @@ const WFTM_URL = `https://api.ftmscan.com/api?module=contract&action=getabi&addr
 // USDC
 const USDC_ADDR = '0x04068DA6C83AFCFA0e13ba15A6696662335D5B75';
 const USDC_URL = `https://api.ftmscan.com/api?module=contract&action=getabi&address=${USDC_ADDR}&apikey=${FTMSCAN_API_KEY}`;
+
+// DAI
+const DAI_ADDR = '0x8D11eC38a3EB5E956B052f67Da8Bdc9bef8Abf3E';
+const DAI_URL = `https://api.ftmscan.com/api?module=contract&action=getabi&address=${DAI_ADDR}&apikey=${FTMSCAN_API_KEY}`;
 
 // EQUAL
 const EQUAL_ADDR = '0x3Fd3A0c85B70754eFc07aC9Ac0cbBDCe664865A6';
@@ -62,15 +68,15 @@ const SPOOKY_ROUTER_ADDR = '0xF491e7B69E4244ad4002BC14e878a34207E38c29';
 const SPOOKY_ROUTER_URL = `https://api.ftmscan.com/api?module=contract&action=getabi&address=${SPOOKY_ROUTER_ADDR}&apikey=${FTMSCAN_API_KEY}`;
 
 // EqualizerRouter
-const EQUALIZER_ROUTER_ADDR = '0xd311Fd89e8403c2E90593457543E99cECc70D511';
+const EQUALIZER_ROUTER_ADDR = '0x2aa07920E4ecb4ea8C801D9DFEce63875623B285';
 const EQUALIZER_ROUTER_URL = `https://api.ftmscan.com/api?module=contract&action=getabi&address=${EQUALIZER_ROUTER_ADDR}&apikey=${FTMSCAN_API_KEY}`;
 
 // BeetsRouter
 const BEETS_ROUTER_ADDR = '0x20dd72Ed959b6147912C2e529F0a0C651c33c9ce';
 const BEETS_ROUTER_URL = `https://api.ftmscan.com/api?module=contract&action=getabi&address=${BEETS_ROUTER_ADDR}&apikey=${FTMSCAN_API_KEY}`;
 
-// LP0 address: vLP-OTOKEN/WFTM Pair SpiritSwapV2
-const LP0_ADDR = '0x6082a08E59A85aea650f9bFA59e2259f9435aA6C';
+// LP0 address: vLP-DAI/WFTM Pair SpiritSwapV2
+const LP0_ADDR = '0x1c8dd14e77C20eB712Dc30bBf687a282CFf904a2';
 const LP0_URL = `https://api.ftmscan.com/api?module=contract&action=getabi&address=${LP0_ADDR}&apikey=${FTMSCAN_API_KEY}`;
 
 // LP1 address: vLP-USDC/WFTM Gauge Equalizer
@@ -85,15 +91,20 @@ const LP2_URL = `https://api.ftmscan.com/api?module=contract&action=getabi&addre
 const LP3_ADDR = '0x56aD84b777ff732de69E85813DAEE1393a9FFE10';
 const LP3_URL = `https://api.ftmscan.com/api?module=contract&action=getabi&address=${LP3_ADDR}&apikey=${FTMSCAN_API_KEY}`;
 
-let owner, multisig, treasury, user0, user1, user2;
+// equalVoter
+const EQUAL_VOTER_ADDR = '0xE3D1A117dF7DCaC2eB0AC8219341bAd92f18dAC1';
+const EQUAL_VOTER_IMPLEM = '0x4556ad146b1e278d05b6fCD758e14A5E52949e32'
+const EQUAL_VOTER_URL = `https://api.ftmscan.com/api?module=contract&action=getabi&address=${EQUAL_VOTER_IMPLEM}&apikey=${FTMSCAN_API_KEY}`;
+
+let owner, multisig, treasury, user0, user1, user2, user3;
 let VTOKENFactory, OTOKENFactory, feesFactory, rewarderFactory, gaugeFactory, bribeFactory;
 let minter, voter, fees, rewarder, governance, multicall, priceOracle;
 let TOKEN, VTOKEN, OTOKEN;
 
-let WFTM, USDC, EQUAL, BOO, BEETS;
-let spiritRouter, spookyRouter, equalizerRouter, beetsRouter;
+let WFTM, USDC, DAI, EQUAL, BOO, BEETS;
+let spiritRouter, spookyRouter, equalizerRouter, beetsRouter, equalVoter;
 
-let LP0, plugin0, gauge0, bribe0; // vLP-OTOKEN/WFTM Pair SpiritSwapV2
+let LP0, plugin0, gauge0, bribe0; // vLP-DAI/WFTM Pair SpiritSwapV2
 let LP1, plugin1, gauge1, bribe1; // vLP-USDC/WFTM Gauge Equalizer 
 let LP2, plugin2, gauge2, bribe2; // LP-USDC/WFTM Farm SpookySwap
 let LP3, plugin3, gauge3, bribe3; // BPT-Fantom of the Opera, Act II Farm Beethoven
@@ -103,7 +114,7 @@ describe.only("test0", function () {
         console.log("Begin Initialization");
   
         // initialize users
-        [owner, multisig, treasury, user0, user1, user2] = await ethers.getSigners();
+        [owner, multisig, treasury, user0, user1, user2, user3] = await ethers.getSigners();
 
         // WFTM
         response = await axios.get(WFTM_URL);
@@ -116,6 +127,13 @@ describe.only("test0", function () {
         const USDC_ABI = JSON.parse(response.data.result);
         USDC = new ethers.Contract(USDC_ADDR, USDC_ABI, provider);
         console.log("- USDC Initialized");
+
+        // DAI
+        response = await axios.get(DAI_URL);
+        const DAI_ABI = JSON.parse(response.data.result);
+        DAI = new ethers.Contract(DAI_ADDR, DAI_ABI, provider);
+        await timer(1000);
+        console.log("- DAI Initialized");
 
         // EQUAL
         response = await axios.get(EQUAL_URL);
@@ -185,6 +203,12 @@ describe.only("test0", function () {
         const LP3_ABI = JSON.parse(response.data.result);
         LP3 = new ethers.Contract(LP3_ADDR, LP3_ABI, provider);
         console.log("- LP3 Initialized");
+
+        // Equal Voter
+        response = await axios.get(EQUAL_VOTER_URL);
+        const EQUAL_VOTER_ABI = JSON.parse(response.data.result);
+        equalVoter = new ethers.Contract(EQUAL_VOTER_ADDR, EQUAL_VOTER_ABI, provider);
+        console.log("- Equal Voter Initialized");
 
         // initialize OTOKENFactory
         const OTOKENFactoryArtifact = await ethers.getContractFactory("OTOKENFactory");
@@ -283,7 +307,7 @@ describe.only("test0", function () {
 
         // initialize plugin0
         const plugin0Artifact = await ethers.getContractFactory("SpiritV2PairPlugin");
-        const plugin0Contract = await plugin0Artifact.deploy(LP0.address, OTOKEN.address, voter.address, [OTOKEN.address, WFTM.address], "SpiritSwapV2");
+        const plugin0Contract = await plugin0Artifact.deploy(LP0.address, OTOKEN.address, voter.address, [DAI.address, WFTM.address], "SpiritSwapV2");
         plugin0 = await ethers.getContractAt("SpiritV2PairPlugin", plugin0Contract.address);
         console.log("- Plugin0 Initialized");
 
@@ -676,7 +700,7 @@ describe.only("test0", function () {
         console.log("******************************************************");
         await rewarder.connect(owner).getReward(owner.address);
     });
-    
+
     it("SwapCardData", async function () {
         console.log("******************************************************");
         let res = await multicall.connect(owner).swapCardData();
@@ -724,6 +748,822 @@ describe.only("test0", function () {
         console.log("Borrow Credit: ", divDec(res.accountBorrowCredit), "BASE");
         console.log("Borrow Debt: ", divDec(res.accountBorrowDebt), "BASE");
         console.log("Max Withdraw: ", divDec(res.accountMaxWithdraw), "VTOKEN");
+    });
+
+    it("user1, user2, and user3 get WFTM", async function () {
+        console.log("******************************************************");
+        await WFTM.connect(user1).deposit({value: ethers.utils.parseEther("6000")});
+        await WFTM.connect(user2).deposit({value: ethers.utils.parseEther("6000")});
+        await WFTM.connect(user3).deposit({value: ethers.utils.parseEther("6000")});
+        await WFTM.connect(user1).transfer(owner.address, ethers.utils.parseEther("5000"));
+        await WFTM.connect(user2).transfer(owner.address, ethers.utils.parseEther("5000"));
+        await WFTM.connect(user3).transfer(owner.address, ethers.utils.parseEther("5000"));
+        await WFTM.connect(owner).withdraw(tenThousand);
+        await WFTM.connect(owner).withdraw(tenThousand);
+        await WFTM.connect(owner).withdraw(fiveThousand);
+    });
+
+    it("owner gets USDC and DAI", async function () {
+        console.log("******************************************************");
+        await spookyRouter.connect(owner).swapExactETHForTokens(1, [WFTM.address, USDC.address], owner.address, 1788060806, {value: tenThousand});
+        await spookyRouter.connect(owner).swapExactETHForTokens(1, [WFTM.address, DAI.address], owner.address, 1788060806, {value: fiveThousand});
+        console.log("owner USDC balance: ", await USDC.connect(owner).balanceOf(owner.address));
+        console.log("owner DAI balance: ", await DAI.connect(owner).balanceOf(owner.address));
+    });
+
+    it("owner gets spirit LP", async function () {
+        console.log("******************************************************");
+        let balance = (await DAI.connect(owner).balanceOf(owner.address)).div(2);
+        await DAI.connect(owner).approve(spiritRouter.address, balance);
+        await spiritRouter.connect(owner).addLiquidityFTM(DAI.address, false, balance, 1, 1, owner.address, 1788060806, {value: fiveThousand});
+        console.log("owner LP0 balance: ", await LP0.connect(owner).balanceOf(owner.address));
+    });
+
+    it("owner gets equal LP", async function () {
+        console.log("******************************************************");
+        let balance = (await USDC.connect(owner).balanceOf(owner.address)).div(2);
+        await USDC.connect(owner).approve(equalizerRouter.address, balance);
+        await equalizerRouter.connect(owner).addLiquidityETH(USDC.address, false, balance, 1, 1, owner.address, 1788060806, {value: fiveThousand});
+        console.log("owner LP1 balance: ", await LP1.connect(owner).balanceOf(owner.address));
+    });
+
+    it("owner gets spooky LP", async function () {
+        console.log("******************************************************");
+        let balance = await USDC.connect(owner).balanceOf(owner.address);
+        await USDC.connect(owner).approve(spookyRouter.address, balance);
+        await spookyRouter.connect(owner).addLiquidityETH(USDC.address, balance, 1, 1, owner.address, 1788060806, {value: fiveThousand});
+        console.log("owner LP2 balance: ", await LP2.connect(owner).balanceOf(owner.address));
+    });
+
+    it("GaugeCardData, plugin0, owner", async function () {
+        console.log("******************************************************");
+        let res = await multicall.gaugeCardData(plugin0.address, owner.address, one);
+        console.log("INFORMATION");
+        console.log("Gauge: ", res.gauge);
+        console.log("Plugin: ", res.plugin);
+        console.log("Underlying: ", res.underlying);
+        console.log("Tokens in Underlying: ");
+        for (let i = 0; i < res.tokensInUnderlying.length; i++) {
+            console.log(" - ", res.tokensInUnderlying[i]);
+        }
+        console.log("Underlying Decimals: ", res.underlyingDecimals);
+        console.log("Is Alive: ", res.isAlive);
+        console.log();
+        console.log("GLOBAL DATA");
+        console.log("Protocol: ", res.protocol);
+        console.log("Symbol: ", res.symbol);
+        console.log("Price Underlying: $", divDec(res.priceUnderlying));
+        console.log("Price OTOKEN: $", divDec(res.priceOTOKEN));
+        console.log("APR: ", divDec(res.apr), "%");
+        console.log("Total Value Locked: $", divDec(res.tvl));
+        console.log("Total Supply: ", divDec(res.totalSupply));
+        console.log("Voting Weight: ", divDec(res.votingWeight), "%");
+        console.log();
+        console.log("ACCOUNT DATA");
+        console.log("Balance Underlying: ", divDec(res.accountUnderlyingBalance));
+        console.log("Balance Deposited: ", divDec(res.accountStakedBalance));
+        console.log("Earned OTOKEN: ", divDec(res.accountEarnedOTOKEN));
+    });
+
+    it("owner deposits spirit LP in plugin0", async function () {
+        console.log("******************************************************");
+        let balance = await LP0.connect(owner).balanceOf(owner.address);
+        await LP0.connect(owner).approve(plugin0.address, balance.mul(2));
+        await expect(plugin0.depositFor(owner.address, 0)).to.be.revertedWith("Plugin__InvalidZeroInput");
+        await expect(plugin0.depositFor(owner.address, balance.mul(2))).to.be.reverted;
+        await plugin0.depositFor(owner.address, balance);
+        await expect(plugin0.withdrawTo(owner.address, 0)).to.be.revertedWith("Plugin__InvalidZeroInput");
+        await expect(plugin0.withdrawTo(owner.address, balance.mul(2))).to.be.reverted;
+        await plugin0.withdrawTo(owner.address, balance);
+        await plugin0.depositFor(owner.address, balance);
+    });
+
+    it("GaugeCardData, plugin0, owner", async function () {
+        console.log("******************************************************");
+        let res = await multicall.gaugeCardData(plugin0.address, owner.address, one);
+        console.log("INFORMATION");
+        console.log("Gauge: ", res.gauge);
+        console.log("Plugin: ", res.plugin);
+        console.log("Underlying: ", res.underlying);
+        console.log("Tokens in Underlying: ");
+        for (let i = 0; i < res.tokensInUnderlying.length; i++) {
+            console.log(" - ", res.tokensInUnderlying[i]);
+        }
+        console.log("Underlying Decimals: ", res.underlyingDecimals);
+        console.log("Is Alive: ", res.isAlive);
+        console.log();
+        console.log("GLOBAL DATA");
+        console.log("Protocol: ", res.protocol);
+        console.log("Symbol: ", res.symbol);
+        console.log("Price Underlying: $", divDec(res.priceUnderlying));
+        console.log("Price OTOKEN: $", divDec(res.priceOTOKEN));
+        console.log("APR: ", divDec(res.apr), "%");
+        console.log("Total Value Locked: $", divDec(res.tvl));
+        console.log("Total Supply: ", divDec(res.totalSupply));
+        console.log("Voting Weight: ", divDec(res.votingWeight), "%");
+        console.log();
+        console.log("ACCOUNT DATA");
+        console.log("Balance Underlying: ", divDec(res.accountUnderlyingBalance));
+        console.log("Balance Deposited: ", divDec(res.accountStakedBalance));
+        console.log("Earned OTOKEN: ", divDec(res.accountEarnedOTOKEN));
+    });
+
+    it("GaugeCardData, plugin1, owner", async function () {
+        console.log("******************************************************");
+        let res = await multicall.gaugeCardData(plugin1.address, owner.address, tenThousand);
+        console.log("INFORMATION");
+        console.log("Gauge: ", res.gauge);
+        console.log("Plugin: ", res.plugin);
+        console.log("Underlying: ", res.underlying);
+        console.log("Tokens in Underlying: ");
+        for (let i = 0; i < res.tokensInUnderlying.length; i++) {
+            console.log(" - ", res.tokensInUnderlying[i]);
+        }
+        console.log("Underlying Decimals: ", res.underlyingDecimals);
+        console.log("Is Alive: ", res.isAlive);
+        console.log();
+        console.log("GLOBAL DATA");
+        console.log("Protocol: ", res.protocol);
+        console.log("Symbol: ", res.symbol);
+        console.log("Price Underlying: $", divDec(res.priceUnderlying));
+        console.log("Price OTOKEN: $", divDec(res.priceOTOKEN));
+        console.log("APR: ", divDec(res.apr), "%");
+        console.log("Total Value Locked: $", divDec(res.tvl));
+        console.log("Total Supply: ", divDec(res.totalSupply));
+        console.log("Voting Weight: ", divDec(res.votingWeight), "%");
+        console.log();
+        console.log("ACCOUNT DATA");
+        console.log("Balance Underlying: ", divDec(res.accountUnderlyingBalance));
+        console.log("Balance Deposited: ", divDec(res.accountStakedBalance));
+        console.log("Earned OTOKEN: ", divDec(res.accountEarnedOTOKEN));
+    });
+
+    it("owner deposits equal LP in plugin1", async function () {
+        console.log("******************************************************");
+        let balance = await LP1.connect(owner).balanceOf(owner.address);
+        await LP1.connect(owner).approve(plugin1.address, balance.mul(2));
+        await expect(plugin1.depositFor(owner.address, 0)).to.be.revertedWith("Plugin__InvalidZeroInput");
+        await expect(plugin1.depositFor(owner.address, balance.mul(2))).to.be.reverted;
+        await plugin1.depositFor(owner.address, balance);
+        await expect(plugin1.withdrawTo(owner.address, 0)).to.be.reverted;
+        await expect(plugin1.withdrawTo(owner.address, balance.mul(2))).to.be.reverted;
+        await plugin1.withdrawTo(owner.address, balance);
+        await plugin1.depositFor(owner.address, balance);
+    });
+
+    it("GaugeCardData, plugin1, owner", async function () {
+        console.log("******************************************************");
+        let res = await multicall.gaugeCardData(plugin1.address, owner.address, tenThousand);
+        console.log("INFORMATION");
+        console.log("Gauge: ", res.gauge);
+        console.log("Plugin: ", res.plugin);
+        console.log("Underlying: ", res.underlying);
+        console.log("Tokens in Underlying: ");
+        for (let i = 0; i < res.tokensInUnderlying.length; i++) {
+            console.log(" - ", res.tokensInUnderlying[i]);
+        }
+        console.log("Underlying Decimals: ", res.underlyingDecimals);
+        console.log("Is Alive: ", res.isAlive);
+        console.log();
+        console.log("GLOBAL DATA");
+        console.log("Protocol: ", res.protocol);
+        console.log("Symbol: ", res.symbol);
+        console.log("Price Underlying: $", divDec(res.priceUnderlying));
+        console.log("Price OTOKEN: $", divDec(res.priceOTOKEN));
+        console.log("APR: ", divDec(res.apr), "%");
+        console.log("Total Value Locked: $", divDec(res.tvl));
+        console.log("Total Supply: ", divDec(res.totalSupply));
+        console.log("Voting Weight: ", divDec(res.votingWeight), "%");
+        console.log();
+        console.log("ACCOUNT DATA");
+        console.log("Balance Underlying: ", divDec(res.accountUnderlyingBalance));
+        console.log("Balance Deposited: ", divDec(res.accountStakedBalance));
+        console.log("Earned OTOKEN: ", divDec(res.accountEarnedOTOKEN));
+    });
+
+    it("GaugeCardData, plugin2, owner", async function () {
+        console.log("******************************************************");
+        let res = await multicall.gaugeCardData(plugin2.address, owner.address, tenThousand);
+        console.log("INFORMATION");
+        console.log("Gauge: ", res.gauge);
+        console.log("Plugin: ", res.plugin);
+        console.log("Underlying: ", res.underlying);
+        console.log("Tokens in Underlying: ");
+        for (let i = 0; i < res.tokensInUnderlying.length; i++) {
+            console.log(" - ", res.tokensInUnderlying[i]);
+        }
+        console.log("Underlying Decimals: ", res.underlyingDecimals);
+        console.log("Is Alive: ", res.isAlive);
+        console.log();
+        console.log("GLOBAL DATA");
+        console.log("Protocol: ", res.protocol);
+        console.log("Symbol: ", res.symbol);
+        console.log("Price Underlying: $", divDec(res.priceUnderlying));
+        console.log("Price OTOKEN: $", divDec(res.priceOTOKEN));
+        console.log("APR: ", divDec(res.apr), "%");
+        console.log("Total Value Locked: $", divDec(res.tvl));
+        console.log("Total Supply: ", divDec(res.totalSupply));
+        console.log("Voting Weight: ", divDec(res.votingWeight), "%");
+        console.log();
+        console.log("ACCOUNT DATA");
+        console.log("Balance Underlying: ", divDec(res.accountUnderlyingBalance));
+        console.log("Balance Deposited: ", divDec(res.accountStakedBalance));
+        console.log("Earned OTOKEN: ", divDec(res.accountEarnedOTOKEN));
+    });
+
+    it("owner deposits spooky LP in plugin1", async function () {
+        console.log("******************************************************");
+        let balance = await LP2.connect(owner).balanceOf(owner.address);
+        await LP2.connect(owner).approve(plugin2.address, balance.mul(2));
+        await expect(plugin2.depositFor(owner.address, 0)).to.be.revertedWith("Plugin__InvalidZeroInput");
+        await expect(plugin2.depositFor(owner.address, balance.mul(2))).to.be.reverted;
+        await plugin2.depositFor(owner.address, balance);
+        await expect(plugin2.withdrawTo(owner.address, 0)).to.be.revertedWith("Plugin__InvalidZeroInput");
+        await expect(plugin2.withdrawTo(owner.address, balance.mul(2))).to.be.reverted;
+        await plugin2.withdrawTo(owner.address, balance);
+        await plugin2.depositFor(owner.address, balance);
+    });
+
+    it("GaugeCardData, plugin2, owner", async function () {
+        console.log("******************************************************");
+        let res = await multicall.gaugeCardData(plugin2.address, owner.address, tenThousand);
+        console.log("INFORMATION");
+        console.log("Gauge: ", res.gauge);
+        console.log("Plugin: ", res.plugin);
+        console.log("Underlying: ", res.underlying);
+        console.log("Tokens in Underlying: ");
+        for (let i = 0; i < res.tokensInUnderlying.length; i++) {
+            console.log(" - ", res.tokensInUnderlying[i]);
+        }
+        console.log("Underlying Decimals: ", res.underlyingDecimals);
+        console.log("Is Alive: ", res.isAlive);
+        console.log();
+        console.log("GLOBAL DATA");
+        console.log("Protocol: ", res.protocol);
+        console.log("Symbol: ", res.symbol);
+        console.log("Price Underlying: $", divDec(res.priceUnderlying));
+        console.log("Price OTOKEN: $", divDec(res.priceOTOKEN));
+        console.log("APR: ", divDec(res.apr), "%");
+        console.log("Total Value Locked: $", divDec(res.tvl));
+        console.log("Total Supply: ", divDec(res.totalSupply));
+        console.log("Voting Weight: ", divDec(res.votingWeight), "%");
+        console.log();
+        console.log("ACCOUNT DATA");
+        console.log("Balance Underlying: ", divDec(res.accountUnderlyingBalance));
+        console.log("Balance Deposited: ", divDec(res.accountStakedBalance));
+        console.log("Earned OTOKEN: ", divDec(res.accountEarnedOTOKEN));
+    });
+
+    it("Owner votes on plugins", async function () {
+        console.log("******************************************************");
+        await voter.connect(owner).vote([plugin0.address, plugin1.address, plugin2.address],[ten, ten, ten]);
+    });
+
+    it("Owner calls distribute", async function () {
+        console.log("******************************************************");
+        await voter.connect(owner).distro();
+    });
+
+    it("GaugeCardData, plugin0, owner", async function () {
+        console.log("******************************************************");
+        let res = await multicall.gaugeCardData(plugin0.address, owner.address, one);
+        console.log("INFORMATION");
+        console.log("Gauge: ", res.gauge);
+        console.log("Plugin: ", res.plugin);
+        console.log("Underlying: ", res.underlying);
+        console.log("Tokens in Underlying: ");
+        for (let i = 0; i < res.tokensInUnderlying.length; i++) {
+            console.log(" - ", res.tokensInUnderlying[i]);
+        }
+        console.log("Underlying Decimals: ", res.underlyingDecimals);
+        console.log("Is Alive: ", res.isAlive);
+        console.log();
+        console.log("GLOBAL DATA");
+        console.log("Protocol: ", res.protocol);
+        console.log("Symbol: ", res.symbol);
+        console.log("Price Underlying: $", divDec(res.priceUnderlying));
+        console.log("Price OTOKEN: $", divDec(res.priceOTOKEN));
+        console.log("APR: ", divDec(res.apr), "%");
+        console.log("Total Value Locked: $", divDec(res.tvl));
+        console.log("Total Supply: ", divDec(res.totalSupply));
+        console.log("Voting Weight: ", divDec(res.votingWeight), "%");
+        console.log();
+        console.log("ACCOUNT DATA");
+        console.log("Balance Underlying: ", divDec(res.accountUnderlyingBalance));
+        console.log("Balance Deposited: ", divDec(res.accountStakedBalance));
+        console.log("Earned OTOKEN: ", divDec(res.accountEarnedOTOKEN));
+    });
+
+    it("Forward time by 7 days", async function () {
+        console.log("******************************************************");
+        await network.provider.send("evm_increaseTime", [7 * 24 * 3600]);
+        await network.provider.send("evm_mine");
+    });
+
+    it("Owner calls distribute", async function () {
+        console.log("******************************************************");
+        await voter.connect(owner).distro();
+    });
+
+    it("GaugeCardData, plugin0, owner", async function () {
+        console.log("******************************************************");
+        let res = await multicall.gaugeCardData(plugin2.address, owner.address, tenThousand);
+        console.log("INFORMATION");
+        console.log("Gauge: ", res.gauge);
+        console.log("Plugin: ", res.plugin);
+        console.log("Underlying: ", res.underlying);
+        console.log("Tokens in Underlying: ");
+        for (let i = 0; i < res.tokensInUnderlying.length; i++) {
+            console.log(" - ", res.tokensInUnderlying[i]);
+        }
+        console.log("Underlying Decimals: ", res.underlyingDecimals);
+        console.log("Is Alive: ", res.isAlive);
+        console.log();
+        console.log("GLOBAL DATA");
+        console.log("Protocol: ", res.protocol);
+        console.log("Symbol: ", res.symbol);
+        console.log("Price Underlying: $", divDec(res.priceUnderlying));
+        console.log("Price OTOKEN: $", divDec(res.priceOTOKEN));
+        console.log("APR: ", divDec(res.apr), "%");
+        console.log("Total Value Locked: $", divDec(res.tvl));
+        console.log("Total Supply: ", divDec(res.totalSupply));
+        console.log("Voting Weight: ", divDec(res.votingWeight), "%");
+        console.log();
+        console.log("ACCOUNT DATA");
+        console.log("Balance Underlying: ", divDec(res.accountUnderlyingBalance));
+        console.log("Balance Deposited: ", divDec(res.accountStakedBalance));
+        console.log("Earned OTOKEN: ", divDec(res.accountEarnedOTOKEN));
+    });
+
+    it("User1 Buys TOKEN with 10 BASE", async function () {
+        console.log("******************************************************");
+        await WFTM.connect(user1).approve(TOKEN.address, ten);
+        await TOKEN.connect(user1).buy(ten, 1, 1792282187, user1.address, AddressZero);
+    });
+
+    it("User1 stakes all TOKEN", async function () {
+        console.log("******************************************************");
+        let balance = await TOKEN.balanceOf(user1.address);
+        await TOKEN.connect(user1).approve(VTOKEN.address, balance);
+        await VTOKEN.connect(user1).deposit(balance);
+    }); 
+
+    it("BondingCurveData, user1", async function () {
+        console.log("******************************************************");
+        let res = await multicall.bondingCurveData(user1.address);
+        console.log("GLOBAL DATA");
+        console.log("Price BASE: $", divDec(res.priceBASE));
+        console.log("Price TOKEN: $", divDec(res.priceTOKEN));
+        console.log("Price OTOKEN: $", divDec(res.priceOTOKEN));
+        console.log("Total Value Locked: $", divDec(res.tvl));
+        console.log("TOKEN Supply: ", divDec(res.supplyTOKEN));
+        console.log("VTOKEN Supply: ", divDec(res.supplyVTOKEN));
+        console.log("APR: ", divDec(res.apr), "%");
+        console.log("Loan-to-Value: ", divDec(res.ltv), "%");
+        console.log("Ratio: ", divDec(res.ratio));
+        console.log();
+        console.log("ACCOUNT DATA");
+        console.log("Balance NATIVE: ", divDec(res.accountNATIVE));
+        console.log("Balance BASE: ", divDec(res.accountBASE));
+        console.log("Earned BASE: ", divDec(res.accountEarnedBASE));
+        console.log("Balance TOKEN: ", divDec(res.accountTOKEN));
+        console.log("Earned TOKEN: ", divDec(res.accountEarnedTOKEN));
+        console.log("Balance OTOKEN: ", divDec(res.accountOTOKEN));
+        console.log("Earned OTOKEN: ", divDec(res.accountEarnedOTOKEN));
+        console.log("Balance VTOKEN: ", divDec(res.accountVTOKEN));
+        console.log("Voting Power: ", divDec(res.accountVotingPower));
+        console.log("Used Voting Power: ", divDec(res.accountUsedWeights));
+        console.log("Borrow Credit: ", divDec(res.accountBorrowCredit), "BASE");
+        console.log("Borrow Debt: ", divDec(res.accountBorrowDebt), "BASE");
+        console.log("Max Withdraw: ", divDec(res.accountMaxWithdraw), "VTOKEN");
+    });
+
+    it("User1 votes on plugins", async function () {
+        console.log("******************************************************");
+        await voter.connect(user1).vote([plugin1.address], [ten]);
+    });
+
+    it("BribeCardData, plugin1, user0 ", async function () {
+        console.log("******************************************************");
+        let res = await multicall.bribeCardData(plugin1.address, user1.address);
+        console.log("INFORMATION");
+        console.log("Gauge: ", res.bribe);
+        console.log("Plugin: ", res.plugin);
+        console.log("Reward Tokens: ");
+        for (let i = 0; i < res.rewardTokens.length; i++) {
+            console.log(" - ", res.rewardTokens[i], res.rewardTokenDecimals[i]);
+        }
+        console.log("Is Alive: ", res.isAlive);
+        console.log();
+        console.log("GLOBAL DATA");
+        console.log("Protocol: ", res.protocol);
+        console.log("Symbol: ", res.symbol);
+        console.log("Voting Weight: ", divDec(res.voteWeight));
+        console.log("Voting percent: ", divDec(res.votePercent), "%");
+        console.log("Reward Per Token: ");
+        for (let i = 0; i < res.rewardsPerToken.length; i++) {
+            console.log(" - ", divDec(res.rewardsPerToken[i]));
+        }
+        console.log();
+        console.log("ACCOUNT DATA");
+        console.log("Account Voting percent: ", divDec(res.accountVotePercent), "%");
+        console.log("Earned Rewards: ");
+        for (let i = 0; i < res.accountRewardsEarned.length; i++) {
+            console.log(" - ", divDec(res.accountRewardsEarned[i]));
+        }
+    });
+
+    it("owner makes swaps on SpiritV2 WFTM/DAI LP to generate voting rewards", async function () {
+        console.log("******************************************************");
+        await spiritRouter.connect(owner).swapExactFTMForTokens(1, [[WFTM.address, DAI.address, false]], owner.address, 1788060806, {value: fiveThousand});
+
+        await DAI.connect(owner).approve(spiritRouter.address, await DAI.connect(owner).balanceOf(owner.address));
+        await spiritRouter.connect(owner).swapExactTokensForFTM(await DAI.connect(owner).balanceOf(owner.address), 1, [[DAI.address, WFTM.address, false]], owner.address, 1788060806);
+
+        await spiritRouter.connect(owner).swapExactFTMForTokens(1, [[WFTM.address, DAI.address, false]], owner.address, 1788060806, {value: fiveThousand});
+
+        await DAI.connect(owner).approve(spiritRouter.address, await DAI.connect(owner).balanceOf(owner.address));
+        await spiritRouter.connect(owner).swapExactTokensForFTM(await DAI.connect(owner).balanceOf(owner.address), 1, [[DAI.address, WFTM.address, false]], owner.address, 1788060806);
+
+        await spiritRouter.connect(owner).swapExactFTMForTokens(1, [[WFTM.address, DAI.address, false]], owner.address, 1788060806, {value: fiveThousand});
+
+        await DAI.connect(owner).approve(spiritRouter.address, await DAI.connect(owner).balanceOf(owner.address));
+        await spiritRouter.connect(owner).swapExactTokensForFTM(await DAI.connect(owner).balanceOf(owner.address), 1, [[DAI.address, WFTM.address, false]], owner.address, 1788060806);
+
+        await spiritRouter.connect(owner).swapExactFTMForTokens(1, [[WFTM.address, DAI.address, false]], owner.address, 1788060806, {value: fiveThousand});
+
+        await DAI.connect(owner).approve(spiritRouter.address, await DAI.connect(owner).balanceOf(owner.address));
+        await spiritRouter.connect(owner).swapExactTokensForFTM(await DAI.connect(owner).balanceOf(owner.address), 1, [[DAI.address, WFTM.address, false]], owner.address, 1788060806);
+    });
+
+    it("owner makes swaps on TOKEN bonding curve to generate swap fees", async function () {
+        console.log("******************************************************");
+        await WFTM.connect(owner).approve(TOKEN.address, oneHundred);
+        await TOKEN.connect(owner).buy(oneHundred, 1, 1792282187, owner.address, AddressZero);
+        await TOKEN.connect(owner).approve(TOKEN.address, await TOKEN.connect(owner).balanceOf(owner.address));
+        await TOKEN.connect(owner).sell(await TOKEN.connect(owner).balanceOf(owner.address), 1, 1792282187, owner.address, AddressZero);
+        await WFTM.connect(owner).approve(TOKEN.address, oneHundred);
+        await TOKEN.connect(owner).buy(oneHundred, 1, 1792282187, owner.address, AddressZero);
+        await TOKEN.connect(owner).approve(TOKEN.address, await TOKEN.connect(owner).balanceOf(owner.address));
+        await TOKEN.connect(owner).sell(await TOKEN.connect(owner).balanceOf(owner.address), 1, 1792282187, owner.address, AddressZero);
+        await WFTM.connect(owner).approve(TOKEN.address, oneHundred);
+        await TOKEN.connect(owner).buy(oneHundred, 1, 1792282187, owner.address, AddressZero);
+    });
+
+    it("Forward time by 7 days", async function () {
+        console.log("******************************************************");
+        console.log("Test equalVoter: ", await equalVoter.connect(owner).gauges('0x7547d05dFf1DA6B4A2eBB3f0833aFE3C62ABD9a1'));
+        const distributeFunctionSig = new ethers.utils.Interface(['function distribute(address)']);
+        await owner.sendTransaction({
+          to: EQUAL_VOTER_ADDR,
+          data: distributeFunctionSig.encodeFunctionData('distribute', ['0x48afe4b50AADbC09D0bCEb796D9E956eA90F15b4'])
+        });
+        await network.provider.send("evm_increaseTime", [7 * 24 * 3600]);
+        await network.provider.send("evm_mine");
+    });
+
+    it("Owner votes on plugins", async function () {
+        console.log("******************************************************");
+        await voter.connect(owner).vote([plugin0.address, plugin1.address, plugin2.address, plugin3.address],[ten, ten, ten, ten]);
+    });
+
+    it("Owner distributes gauges and bribes", async function () {
+        console.log("******************************************************");
+        await voter.connect(owner).distro();
+        await voter.connect(owner).distributeToBribes([plugin0.address, plugin1.address, plugin2.address]);
+        await fees.connect(owner).distribute();
+    });
+
+    it("Forward time by 1 days", async function () {
+        console.log("******************************************************");
+        await network.provider.send("evm_increaseTime", [1 * 24 * 3600]);
+        await network.provider.send("evm_mine");
+    });
+
+    it("BribeCardData, plugin0, owner ", async function () {
+        console.log("******************************************************");
+        let res = await multicall.bribeCardData(plugin0.address, owner.address);
+        console.log("INFORMATION");
+        console.log("Gauge: ", res.bribe);
+        console.log("Plugin: ", res.plugin);
+        console.log("Reward Tokens: ");
+        for (let i = 0; i < res.rewardTokens.length; i++) {
+            console.log(" - ", res.rewardTokens[i], res.rewardTokenDecimals[i]);
+        }
+        console.log("Is Alive: ", res.isAlive);
+        console.log();
+        console.log("GLOBAL DATA");
+        console.log("Protocol: ", res.protocol);
+        console.log("Symbol: ", res.symbol);
+        console.log("Voting Weight: ", divDec(res.voteWeight));
+        console.log("Voting percent: ", divDec(res.votePercent), "%");
+        console.log("Reward Per Token: ");
+        for (let i = 0; i < res.rewardsPerToken.length; i++) {
+            console.log(" - ", divDec(res.rewardsPerToken[i]));
+        }
+        console.log();
+        console.log("ACCOUNT DATA");
+        console.log("Account Voting percent: ", divDec(res.accountVotePercent), "%");
+        console.log("Earned Rewards: ");
+        for (let i = 0; i < res.accountRewardsEarned.length; i++) {
+            console.log(" - ", divDec(res.accountRewardsEarned[i]));
+        }
+    });
+
+    it("BribeCardData, plugin1, owner ", async function () {
+        console.log("******************************************************");
+        let res = await multicall.bribeCardData(plugin1.address, owner.address);
+        console.log("INFORMATION");
+        console.log("Gauge: ", res.bribe);
+        console.log("Plugin: ", res.plugin);
+        console.log("Reward Tokens: ");
+        for (let i = 0; i < res.rewardTokens.length; i++) {
+            console.log(" - ", res.rewardTokens[i], res.rewardTokenDecimals[i]);
+        }
+        console.log("Is Alive: ", res.isAlive);
+        console.log();
+        console.log("GLOBAL DATA");
+        console.log("Protocol: ", res.protocol);
+        console.log("Symbol: ", res.symbol);
+        console.log("Voting Weight: ", divDec(res.voteWeight));
+        console.log("Voting percent: ", divDec(res.votePercent), "%");
+        console.log("Reward Per Token: ");
+        for (let i = 0; i < res.rewardsPerToken.length; i++) {
+            console.log(" - ", divDec(res.rewardsPerToken[i]));
+        }
+        console.log();
+        console.log("ACCOUNT DATA");
+        console.log("Account Voting percent: ", divDec(res.accountVotePercent), "%");
+        console.log("Earned Rewards: ");
+        for (let i = 0; i < res.accountRewardsEarned.length; i++) {
+            console.log(" - ", divDec(res.accountRewardsEarned[i]));
+        }
+    });
+
+    it("BribeCardData, plugin2, owner ", async function () {
+        console.log("******************************************************");
+        let res = await multicall.bribeCardData(plugin2.address, owner.address);
+        console.log("INFORMATION");
+        console.log("Gauge: ", res.bribe);
+        console.log("Plugin: ", res.plugin);
+        console.log("Reward Tokens: ");
+        for (let i = 0; i < res.rewardTokens.length; i++) {
+            console.log(" - ", res.rewardTokens[i], res.rewardTokenDecimals[i]);
+        }
+        console.log("Is Alive: ", res.isAlive);
+        console.log();
+        console.log("GLOBAL DATA");
+        console.log("Protocol: ", res.protocol);
+        console.log("Symbol: ", res.symbol);
+        console.log("Voting Weight: ", divDec(res.voteWeight));
+        console.log("Voting percent: ", divDec(res.votePercent), "%");
+        console.log("Reward Per Token: ");
+        for (let i = 0; i < res.rewardsPerToken.length; i++) {
+            console.log(" - ", divDec(res.rewardsPerToken[i]));
+        }
+        console.log();
+        console.log("ACCOUNT DATA");
+        console.log("Account Voting percent: ", divDec(res.accountVotePercent), "%");
+        console.log("Earned Rewards: ");
+        for (let i = 0; i < res.accountRewardsEarned.length; i++) {
+            console.log(" - ", divDec(res.accountRewardsEarned[i]));
+        }
+    });
+
+    it("Owner kills plugin3", async function () {
+        console.log("******************************************************");
+        await voter.connect(owner).killGauge(gauge3.address);
+    });
+
+    it("Forward time by 7 days", async function () {
+        console.log("******************************************************");
+        await network.provider.send("evm_increaseTime", [7 * 24 * 3600]);
+        await network.provider.send("evm_mine");
+    });
+
+    it("Owner votes on plugins", async function () {
+        console.log("******************************************************");
+        await voter.connect(owner).vote([plugin0.address, plugin1.address, plugin2.address, plugin3.address],[ten, ten, ten, ten]);
+    });
+
+    it("GaugeCardData, plugin3, owner", async function () {
+        console.log("******************************************************");
+        let res = await multicall.gaugeCardData(plugin3.address, owner.address, one);
+        console.log("INFORMATION");
+        console.log("Gauge: ", res.gauge);
+        console.log("Plugin: ", res.plugin);
+        console.log("Underlying: ", res.underlying);
+        console.log("Tokens in Underlying: ");
+        for (let i = 0; i < res.tokensInUnderlying.length; i++) {
+            console.log(" - ", res.tokensInUnderlying[i]);
+        }
+        console.log("Underlying Decimals: ", res.underlyingDecimals);
+        console.log("Is Alive: ", res.isAlive);
+        console.log();
+        console.log("GLOBAL DATA");
+        console.log("Protocol: ", res.protocol);
+        console.log("Symbol: ", res.symbol);
+        console.log("Price Underlying: $", divDec(res.priceUnderlying));
+        console.log("Price OTOKEN: $", divDec(res.priceOTOKEN));
+        console.log("APR: ", divDec(res.apr), "%");
+        console.log("Total Value Locked: $", divDec(res.tvl));
+        console.log("Total Supply: ", divDec(res.totalSupply));
+        console.log("Voting Weight: ", divDec(res.votingWeight), "%");
+        console.log();
+        console.log("ACCOUNT DATA");
+        console.log("Balance Underlying: ", divDec(res.accountUnderlyingBalance));
+        console.log("Balance Deposited: ", divDec(res.accountStakedBalance));
+        console.log("Earned OTOKEN: ", divDec(res.accountEarnedOTOKEN));
+    });
+
+    it("Forward time by 7 days", async function () {
+        console.log("******************************************************");
+        await network.provider.send("evm_increaseTime", [7 * 24 * 3600]);
+        await network.provider.send("evm_mine");
+    });
+
+    it("BribeCardData, plugin1, owner ", async function () {
+        console.log("******************************************************");
+        let res = await multicall.bribeCardData(plugin1.address, owner.address);
+        console.log("INFORMATION");
+        console.log("Gauge: ", res.bribe);
+        console.log("Plugin: ", res.plugin);
+        console.log("Reward Tokens: ");
+        for (let i = 0; i < res.rewardTokens.length; i++) {
+            console.log(" - ", res.rewardTokens[i], res.rewardTokenDecimals[i]);
+        }
+        console.log("Is Alive: ", res.isAlive);
+        console.log();
+        console.log("GLOBAL DATA");
+        console.log("Protocol: ", res.protocol);
+        console.log("Symbol: ", res.symbol);
+        console.log("Voting Weight: ", divDec(res.voteWeight));
+        console.log("Voting percent: ", divDec(res.votePercent), "%");
+        console.log("Reward Per Token: ");
+        for (let i = 0; i < res.rewardsPerToken.length; i++) {
+            console.log(" - ", divDec(res.rewardsPerToken[i]));
+        }
+        console.log();
+        console.log("ACCOUNT DATA");
+        console.log("Account Voting percent: ", divDec(res.accountVotePercent), "%");
+        console.log("Earned Rewards: ");
+        for (let i = 0; i < res.accountRewardsEarned.length; i++) {
+            console.log(" - ", divDec(res.accountRewardsEarned[i]));
+        }
+    });
+
+    it("BribeCardData, plugin1, owner ", async function () {
+        console.log("******************************************************");
+        let res = await multicall.bribeCardData(plugin1.address, user1.address);
+        console.log("INFORMATION");
+        console.log("Gauge: ", res.bribe);
+        console.log("Plugin: ", res.plugin);
+        console.log("Reward Tokens: ");
+        for (let i = 0; i < res.rewardTokens.length; i++) {
+            console.log(" - ", res.rewardTokens[i], res.rewardTokenDecimals[i]);
+        }
+        console.log("Is Alive: ", res.isAlive);
+        console.log();
+        console.log("GLOBAL DATA");
+        console.log("Protocol: ", res.protocol);
+        console.log("Symbol: ", res.symbol);
+        console.log("Voting Weight: ", divDec(res.voteWeight));
+        console.log("Voting percent: ", divDec(res.votePercent), "%");
+        console.log("Reward Per Token: ");
+        for (let i = 0; i < res.rewardsPerToken.length; i++) {
+            console.log(" - ", divDec(res.rewardsPerToken[i]));
+        }
+        console.log();
+        console.log("ACCOUNT DATA");
+        console.log("Account Voting percent: ", divDec(res.accountVotePercent), "%");
+        console.log("Earned Rewards: ");
+        for (let i = 0; i < res.accountRewardsEarned.length; i++) {
+            console.log(" - ", divDec(res.accountRewardsEarned[i]));
+        }
+    });
+
+    it("Owner claims bribes", async function () {
+        console.log("******************************************************");
+        await voter.connect(owner).claimBribes([bribe0.address, bribe1.address, bribe2.address, bribe3.address]);
+    });
+
+    it("User1 claims bribes", async function () {
+        console.log("******************************************************");
+        await voter.connect(owner).claimBribes([bribe1.address]);
+    });
+
+    it("BribeCardData, plugin1, owner ", async function () {
+        console.log("******************************************************");
+        let res = await multicall.bribeCardData(plugin0.address, owner.address);
+        console.log("INFORMATION");
+        console.log("Gauge: ", res.bribe);
+        console.log("Plugin: ", res.plugin);
+        console.log("Reward Tokens: ");
+        for (let i = 0; i < res.rewardTokens.length; i++) {
+            console.log(" - ", res.rewardTokens[i], res.rewardTokenDecimals[i]);
+        }
+        console.log("Is Alive: ", res.isAlive);
+        console.log();
+        console.log("GLOBAL DATA");
+        console.log("Protocol: ", res.protocol);
+        console.log("Symbol: ", res.symbol);
+        console.log("Voting Weight: ", divDec(res.voteWeight));
+        console.log("Voting percent: ", divDec(res.votePercent), "%");
+        console.log("Reward Per Token: ");
+        for (let i = 0; i < res.rewardsPerToken.length; i++) {
+            console.log(" - ", divDec(res.rewardsPerToken[i]));
+        }
+        console.log();
+        console.log("ACCOUNT DATA");
+        console.log("Account Voting percent: ", divDec(res.accountVotePercent), "%");
+        console.log("Earned Rewards: ");
+        for (let i = 0; i < res.accountRewardsEarned.length; i++) {
+            console.log(" - ", divDec(res.accountRewardsEarned[i]));
+        }
+    });
+
+    it("Owner claims gauges", async function () {
+        console.log("******************************************************");
+        await voter.connect(owner).claimRewards([gauge0.address, gauge1.address, gauge2.address, gauge3.address]);
+    });
+
+    it("Owner withdraw from plguins", async function () {
+        console.log("******************************************************");
+        await plugin0.connect(owner).withdrawTo(owner.address, await plugin0.balanceOf(owner.address));
+        await plugin1.connect(owner).withdrawTo(owner.address, await plugin1.balanceOf(owner.address));
+        await plugin2.connect(owner).withdrawTo(owner.address, await plugin2.balanceOf(owner.address));
+    });
+
+    it("Owner distributes gauges and bribes", async function () {
+        console.log("******************************************************");
+        await voter.connect(owner).distro();
+        await voter.connect(owner).distributeToBribes([plugin0.address, plugin1.address, plugin2.address]);
+    });
+
+    it("Forward time by 7 days", async function () {
+        console.log("******************************************************");
+        await network.provider.send("evm_increaseTime", [7 * 24 * 3600]);
+        await network.provider.send("evm_mine");
+    });
+
+    it("GaugeCardData, plugin1, owner", async function () {
+        console.log("******************************************************");
+        let res = await multicall.gaugeCardData(plugin1.address, owner.address, one);
+        console.log("INFORMATION");
+        console.log("Gauge: ", res.gauge);
+        console.log("Plugin: ", res.plugin);
+        console.log("Underlying: ", res.underlying);
+        console.log("Tokens in Underlying: ");
+        for (let i = 0; i < res.tokensInUnderlying.length; i++) {
+            console.log(" - ", res.tokensInUnderlying[i]);
+        }
+        console.log("Underlying Decimals: ", res.underlyingDecimals);
+        console.log("Is Alive: ", res.isAlive);
+        console.log();
+        console.log("GLOBAL DATA");
+        console.log("Protocol: ", res.protocol);
+        console.log("Symbol: ", res.symbol);
+        console.log("Price Underlying: $", divDec(res.priceUnderlying));
+        console.log("Price OTOKEN: $", divDec(res.priceOTOKEN));
+        console.log("APR: ", divDec(res.apr), "%");
+        console.log("Total Value Locked: $", divDec(res.tvl));
+        console.log("Total Supply: ", divDec(res.totalSupply));
+        console.log("Voting Weight: ", divDec(res.votingWeight), "%");
+        console.log();
+        console.log("ACCOUNT DATA");
+        console.log("Balance Underlying: ", divDec(res.accountUnderlyingBalance));
+        console.log("Balance Deposited: ", divDec(res.accountStakedBalance));
+        console.log("Earned OTOKEN: ", divDec(res.accountEarnedOTOKEN));
+    });
+
+    it("BribeCardData, plugin1, owner ", async function () {
+        console.log("******************************************************");
+        let res = await multicall.bribeCardData(plugin1.address, owner.address);
+        console.log("INFORMATION");
+        console.log("Gauge: ", res.bribe);
+        console.log("Plugin: ", res.plugin);
+        console.log("Reward Tokens: ");
+        for (let i = 0; i < res.rewardTokens.length; i++) {
+            console.log(" - ", res.rewardTokens[i], res.rewardTokenDecimals[i]);
+        }
+        console.log("Is Alive: ", res.isAlive);
+        console.log();
+        console.log("GLOBAL DATA");
+        console.log("Protocol: ", res.protocol);
+        console.log("Symbol: ", res.symbol);
+        console.log("Voting Weight: ", divDec(res.voteWeight));
+        console.log("Voting percent: ", divDec(res.votePercent), "%");
+        console.log("Reward Per Token: ");
+        for (let i = 0; i < res.rewardsPerToken.length; i++) {
+            console.log(" - ", divDec(res.rewardsPerToken[i]));
+        }
+        console.log();
+        console.log("ACCOUNT DATA");
+        console.log("Account Voting percent: ", divDec(res.accountVotePercent), "%");
+        console.log("Earned Rewards: ");
+        for (let i = 0; i < res.accountRewardsEarned.length; i++) {
+            console.log(" - ", divDec(res.accountRewardsEarned[i]));
+        }
     });
 
 
