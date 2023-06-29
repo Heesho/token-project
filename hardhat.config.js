@@ -43,10 +43,10 @@ module.exports = {
   networks: {
     hardhat: {
       // Fantom
-      // chainId: 250,
-      // forking: {
-      //   url: "https://rpc.ftm.tools",
-      // },
+      chainId: 250,
+      forking: {
+        url: "https://rpc.ftm.tools",
+      },
     },
     mainnet: {
       url:
@@ -88,7 +88,7 @@ module.exports = {
   },
   paths: {
     sources: "./contracts",
-    tests: "./tests/local",
+    tests: "./tests/fantom",
     cache: "./cache",
     artifacts: "./artifacts",
   },

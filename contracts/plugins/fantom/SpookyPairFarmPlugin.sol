@@ -9,10 +9,6 @@ pragma solidity 0.8.19;
 
 import 'contracts/Plugin.sol';
 
-interface ISpookyRouter {
-    function isPair(address _pair) external view returns (bool);
-}
-
 interface ISpookyPairToken {
     function name() external view returns (string memory);
     function symbol() external view returns (string memory);
@@ -25,7 +21,7 @@ interface ISpookyMasterChef {
     function harvestAll() external;
 }
 
-abstract contract SpookyPairFarmPlugin is Plugin {
+contract SpookyPairFarmPlugin is Plugin {
     using SafeERC20 for IERC20;
 
     /*----------  CONSTANTS  --------------------------------------------*/
@@ -63,9 +59,8 @@ abstract contract SpookyPairFarmPlugin is Plugin {
             _protocol
         )
     {
-        if (ISpookyRouter(ROUTER).isPair(_underlying) == false) revert Plugin__NotPair();
-        masterChefPID = _pid;
         if (ISpookyMasterChef(MASTER_CHEF).lpToken(_pid) != _underlying) revert Plugin__InvalidFarm();
+        masterChefPID = _pid;
     }
 
     function depositFor(address account, uint256 amount) 

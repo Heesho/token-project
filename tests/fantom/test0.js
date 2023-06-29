@@ -1,9 +1,12 @@
 const convert = (amount, decimals) => ethers.utils.parseUnits(amount, decimals);
 const divDec = (amount, decimals = 18) => amount / 10 ** decimals;
 const divDec6 = (amount, decimals = 6) => amount / 10 ** decimals;
+const { config } = require("dotenv");
+config();
 const { expect } = require("chai");
 const { ethers, network } = require("hardhat");
 const { execPath } = require("process");
+const axios = require('axios');
 
 const AddressZero = "0x0000000000000000000000000000000000000000";
 const one = convert("1", 18);
@@ -18,14 +21,80 @@ const fiveHundred = convert("500", 18);
 const eightHundred = convert("800", 18);
 const oneThousand = convert("1000", 18);
 
+function timer(t) {
+    return new Promise((r) => setTimeout(r, t));
+}
+  
+const provider = new ethers.providers.getDefaultProvider(
+    "http://127.0.0.1:8545/"
+);
+
+const FTMSCAN_API_KEY = process.env.FTMSCAN_API_KEY || "";
+
+// WFTM
+const WFTM_ADDR = '0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83'; 
+const WFTM_URL = `https://api.ftmscan.com/api?module=contract&action=getabi&address=${WFTM_ADDR}&apikey=${FTMSCAN_API_KEY}`;
+
+// USDC
+const USDC_ADDR = '0x04068DA6C83AFCFA0e13ba15A6696662335D5B75';
+const USDC_URL = `https://api.ftmscan.com/api?module=contract&action=getabi&address=${USDC_ADDR}&apikey=${FTMSCAN_API_KEY}`;
+
+// EQUAL
+const EQUAL_ADDR = '0x3Fd3A0c85B70754eFc07aC9Ac0cbBDCe664865A6';
+const EQUAL_URL = `https://api.ftmscan.com/api?module=contract&action=getabi&address=${EQUAL_ADDR}&apikey=${FTMSCAN_API_KEY}`;
+
+// BOO
+const BOO_ADDR = '0x841FAD6EAe12c286d1Fd18d1d525DFfA75C7EFFE';
+const BOO_URL = `https://api.ftmscan.com/api?module=contract&action=getabi&address=${BOO_ADDR}&apikey=${FTMSCAN_API_KEY}`;
+
+// BEETS
+const BEETS_ADDR = '0xF24Bcf4d1e507740041C9cFd2DddB29585aDCe1e';
+const BEETS_URL = `https://api.ftmscan.com/api?module=contract&action=getabi&address=${BEETS_ADDR}&apikey=${FTMSCAN_API_KEY}`;
+
+// SpiritRouter
+const SPIRIT_ROUTER_ADDR = '0x09855B4ef0b9df961ED097EF50172be3e6F13665';
+const SPIRIT_ROUTER_URL = `https://api.ftmscan.com/api?module=contract&action=getabi&address=${SPIRIT_ROUTER_ADDR}&apikey=${FTMSCAN_API_KEY}`;
+
+// SpookyRouter
+const SPOOKY_ROUTER_ADDR = '0xF491e7B69E4244ad4002BC14e878a34207E38c29';
+const SPOOKY_ROUTER_URL = `https://api.ftmscan.com/api?module=contract&action=getabi&address=${SPOOKY_ROUTER_ADDR}&apikey=${FTMSCAN_API_KEY}`;
+
+// EqualizerRouter
+const EQUALIZER_ROUTER_ADDR = '0xd311Fd89e8403c2E90593457543E99cECc70D511';
+const EQUALIZER_ROUTER_URL = `https://api.ftmscan.com/api?module=contract&action=getabi&address=${EQUALIZER_ROUTER_ADDR}&apikey=${FTMSCAN_API_KEY}`;
+
+// BeetsRouter
+const BEETS_ROUTER_ADDR = '0x20dd72Ed959b6147912C2e529F0a0C651c33c9ce';
+const BEETS_ROUTER_URL = `https://api.ftmscan.com/api?module=contract&action=getabi&address=${BEETS_ROUTER_ADDR}&apikey=${FTMSCAN_API_KEY}`;
+
+// LP0 address: vLP-OTOKEN/WFTM Pair SpiritSwapV2
+const LP0_ADDR = '0x6082a08E59A85aea650f9bFA59e2259f9435aA6C';
+const LP0_URL = `https://api.ftmscan.com/api?module=contract&action=getabi&address=${LP0_ADDR}&apikey=${FTMSCAN_API_KEY}`;
+
+// LP1 address: vLP-USDC/WFTM Gauge Equalizer
+const LP1_ADDR = '0x7547d05dFf1DA6B4A2eBB3f0833aFE3C62ABD9a1';
+const LP1_URL = `https://api.ftmscan.com/api?module=contract&action=getabi&address=${LP1_ADDR}&apikey=${FTMSCAN_API_KEY}`;
+
+// LP2 address: LP-USDC/WFTM Farm SpookySwap
+const LP2_ADDR = '0x2b4C76d0dc16BE1C31D4C1DC53bF9B45987Fc75c';
+const LP2_URL = `https://api.ftmscan.com/api?module=contract&action=getabi&address=${LP2_ADDR}&apikey=${FTMSCAN_API_KEY}`;
+
+// LP3 address: BPT-Fantom of the Opera, Act II Farm Beethoven
+const LP3_ADDR = '0x56aD84b777ff732de69E85813DAEE1393a9FFE10';
+const LP3_URL = `https://api.ftmscan.com/api?module=contract&action=getabi&address=${LP3_ADDR}&apikey=${FTMSCAN_API_KEY}`;
+
 let owner, multisig, treasury, user0, user1, user2;
 let VTOKENFactory, OTOKENFactory, feesFactory, rewarderFactory, gaugeFactory, bribeFactory;
-let minter, voter, fees, rewarder, governance, multicall;
-let TOKEN, VTOKEN, OTOKEN, BASE;
-let TEST0, xTEST0, plugin0, gauge0, bribe0;
-let TEST1, xTEST1, plugin1, gauge1, bribe1;
-let TEST2, LP0, plugin2, gauge2, bribe2;
-let TEST3, LP1, plugin3, gauge3, bribe3;
+let minter, voter, fees, rewarder, governance, multicall, priceOracle;
+let TOKEN, VTOKEN, OTOKEN;
+
+let WFTM, USDC, EQUAL, BOO, BEETS;
+let spiritRouter, spookyRouter, equalizerRouter, beetsRouter;
+
+let LP0, plugin0, gauge0, bribe0; // vLP-OTOKEN/WFTM Pair SpiritSwapV2
+let LP1, plugin1, gauge1, bribe1; // vLP-USDC/WFTM Gauge Equalizer 
+let LP2, plugin2, gauge2, bribe2; // LP-USDC/WFTM Farm SpookySwap
+let LP3, plugin3, gauge3, bribe3; // BPT-Fantom of the Opera, Act II Farm Beethoven
 
 describe.only("test0", function () {
     before("Initial set up", async function () {
@@ -33,27 +102,101 @@ describe.only("test0", function () {
   
         // initialize users
         [owner, multisig, treasury, user0, user1, user2] = await ethers.getSigners();
+
+        // WFTM
+        response = await axios.get(WFTM_URL);
+        const WFTM_ABI = JSON.parse(response.data.result);
+        WFTM = new ethers.Contract(WFTM_ADDR, WFTM_ABI, provider);
+        await timer(1000);
+        console.log("- WFTM Initialized");
+
+        // USDC
+        response = await axios.get(USDC_URL);
+        const USDC_ABI = JSON.parse(response.data.result);
+        USDC = new ethers.Contract(USDC_ADDR, USDC_ABI, provider);
+        await timer(1000);
+        console.log("- USDC Initialized");
+
+        // EQUAL
+        response = await axios.get(EQUAL_URL);
+        const EQUAL_ABI = JSON.parse(response.data.result);
+        EQUAL = new ethers.Contract(EQUAL_ADDR, EQUAL_ABI, provider);
+        await timer(1000);
+        console.log("- EQUAL Initialized");
+
+        // BOO
+        response = await axios.get(BOO_URL);
+        const BOO_ABI = JSON.parse(response.data.result);
+        BOO = new ethers.Contract(BOO_ADDR, BOO_ABI, provider);
+        await timer(1000);
+        console.log("- BOO Initialized");
+
+        // BEETS
+        response = await axios.get(BEETS_URL);
+        const BEETS_ABI = JSON.parse(response.data.result);
+        BEETS = new ethers.Contract(BEETS_ADDR, BEETS_ABI, provider);
+        await timer(1000);
+        console.log("- BEETS Initialized");
+
+        // SpiritRouter
+        response = await axios.get(SPIRIT_ROUTER_URL);
+        const SPIRIT_ROUTER_ABI = JSON.parse(response.data.result);
+        spiritRouter = new ethers.Contract(SPIRIT_ROUTER_ADDR, SPIRIT_ROUTER_ABI, provider);
+        await timer(1000);
+        console.log("- SpiritRouter Initialized");
+
+        // SpookyRouter
+        response = await axios.get(SPOOKY_ROUTER_URL);
+        const SPOOKY_ROUTER_ABI = JSON.parse(response.data.result);
+        spookyRouter = new ethers.Contract(SPOOKY_ROUTER_ADDR, SPOOKY_ROUTER_ABI, provider);
+        await timer(1000);
+        console.log("- SpookyRouter Initialized");
+
+        // EqualizerRouter
+        response = await axios.get(EQUALIZER_ROUTER_URL);
+        const EQUALIZER_ROUTER_ABI = JSON.parse(response.data.result);
+        equalizerRouter = new ethers.Contract(EQUALIZER_ROUTER_ADDR, EQUALIZER_ROUTER_ABI, provider);
+        await timer(1000);
+        console.log("- EqualizerRouter Initialized");
+
+        // BeetsRouter
+        response = await axios.get(BEETS_ROUTER_URL);
+        const BEETS_ROUTER_ABI = JSON.parse(response.data.result);
+        beetsRouter = new ethers.Contract(BEETS_ROUTER_ADDR, BEETS_ROUTER_ABI, provider);
+        await timer(1000);
+        console.log("- BeetsRouter Initialized");
+
+        // LP0
+        response = await axios.get(LP0_URL);
+        const LP0_ABI = JSON.parse(response.data.result);
+        LP0 = new ethers.Contract(LP0_ADDR, LP0_ABI, provider);
+        await timer(1000);
+        console.log("- LP0 Initialized");
+
+        // LP1
+        response = await axios.get(LP1_URL);
+        const LP1_ABI = JSON.parse(response.data.result);
+        LP1 = new ethers.Contract(LP1_ADDR, LP1_ABI, provider);
+        await timer(1000);
+        console.log("- LP1 Initialized");
+
+        // LP2
+        response = await axios.get(LP2_URL);
+        const LP2_ABI = JSON.parse(response.data.result);
+        LP2 = new ethers.Contract(LP2_ADDR, LP2_ABI, provider);
+        await timer(1000);
+        console.log("- LP2 Initialized");
+
+        // LP3
+        response = await axios.get(LP3_URL);
+        const LP3_ABI = JSON.parse(response.data.result);
+        LP3 = new ethers.Contract(LP3_ADDR, LP3_ABI, provider);
+        await timer(1000);
+        console.log("- LP3 Initialized");
   
         // initialize ERC20Mocks
         const ERC20MockArtifact = await ethers.getContractFactory("ERC20Mock");
-        BASE = await ERC20MockArtifact.deploy("BASE", "BASE");
-        TEST0 = await ERC20MockArtifact.deploy("TEST0", "TEST0");
-        TEST1 = await ERC20MockArtifact.deploy("TEST1", "TEST1");
-        TEST2 = await ERC20MockArtifact.deploy("TEST2", "TEST2");
-        TEST3 = await ERC20MockArtifact.deploy("TEST3", "TEST3");
         console.log("- ERC20Mocks Initialized");
-
-        // initialize ERC4626Mocks
-        const ERC4626MockArtifact = await ethers.getContractFactory("ERC4626Mock");
-        xTEST0 = await ERC4626MockArtifact.deploy("xTEST0", "xTEST0", TEST0.address);
-        xTEST1 = await ERC4626MockArtifact.deploy("xTEST1", "xTEST1", TEST1.address);
-        console.log("- ERC4626Mocks Initialized");
-
-        // initialize SolidlyLPMocks
-        const SolidlyLPMockArtifact = await ethers.getContractFactory("SolidlyLPMock");
-        LP0 = await SolidlyLPMockArtifact.deploy("vLP-TEST2/BASE", "vLP-TEST2/BASE", TEST2.address, BASE.address);
-        LP1 = await SolidlyLPMockArtifact.deploy("sLP-TEST3/BASE", "sLP-TEST3/BASE", TEST3.address, BASE.address);
-        console.log("- SolidlyLPMocks Initialized");
 
         // initialize OTOKENFactory
         const OTOKENFactoryArtifact = await ethers.getContractFactory("OTOKENFactory");
@@ -77,7 +220,7 @@ describe.only("test0", function () {
 
         // intialize TOKEN
         const TOKENArtifact = await ethers.getContractFactory("TOKEN");
-        TOKEN = await TOKENArtifact.deploy(BASE.address, oneThousand, OTOKENFactory.address, VTOKENFactory.address, rewarderFactory.address, feesFactory.address);
+        TOKEN = await TOKENArtifact.deploy(WFTM.address, oneThousand, OTOKENFactory.address, VTOKENFactory.address, rewarderFactory.address, feesFactory.address);
         console.log("- TOKEN Initialized");
 
         // initialize TOKENFees
@@ -127,88 +270,94 @@ describe.only("test0", function () {
         console.log("- TOKENGovernor Initialized");
 
         // initialize Multicall
-        const multicallArtifact = await ethers.getContractFactory("Multicall");
-        const multicallContract = await multicallArtifact.deploy(voter.address, BASE.address, TOKEN.address, OTOKEN.address, VTOKEN.address, rewarder.address);
-        multicall = await ethers.getContractAt("Multicall", multicallContract.address);
+        const multicallArtifact = await ethers.getContractFactory("Multicall_Fantom");
+        const multicallContract = await multicallArtifact.deploy(voter.address, TOKEN.address, OTOKEN.address, VTOKEN.address, rewarder.address);
+        multicall = await ethers.getContractAt("Multicall_Fantom", multicallContract.address);
         console.log("- Multicall Initialized");
 
         // System set-up
+        await expect(gaugeFactory.connect(user2).setVoter(voter.address)).to.be.revertedWith("GaugeFactory__UnathorizedVoter");
+        await expect(gaugeFactory.setVoter(AddressZero)).to.be.revertedWith("GaugeFactory__InvalidZeroAddress");
         await gaugeFactory.setVoter(voter.address);
+        await expect(bribeFactory.connect(user2).setVoter(voter.address)).to.be.revertedWith("BribeFactory__UnathorizedVoter");
+        await expect(bribeFactory.setVoter(AddressZero)).to.be.revertedWith("BribeFactory__InvalidZeroAddress");
         await bribeFactory.setVoter(voter.address);
         await VTOKEN.connect(owner).addReward(TOKEN.address);
         await VTOKEN.connect(owner).addReward(OTOKEN.address);
-        await VTOKEN.connect(owner).addReward(BASE.address);
+        await VTOKEN.connect(owner).addReward(WFTM.address);
         await VTOKEN.connect(owner).setVoter(voter.address);
         await OTOKEN.connect(owner).setMinter(minter.address);
+        await expect(voter.connect(user2).initialize(minter.address)).to.be.revertedWith("Voter__NotMinter");
         await voter.initialize(minter.address);
+        await expect(minter.connect(user2).initialize()).to.be.revertedWith("Minter__UnathorizedInitializer");
         await minter.initialize();
-        await multicall.setPriceBase(one);
         console.log("- System set up");
 
-        // initialize ERC4626Mock_Plugin for TEST0 in xTEST0
-        const TEST0_ERC4626Mock_PluginArtifact = await ethers.getContractFactory("ERC4626Mock_Plugin");
-        const TEST0_ERC4626Mock_PluginContract = await TEST0_ERC4626Mock_PluginArtifact.deploy(TEST0.address, xTEST0.address, OTOKEN.address, voter.address, [TEST0.address], [xTEST0.address], "Protocol0");
-        plugin0 = await ethers.getContractAt("ERC4626Mock_Plugin", TEST0_ERC4626Mock_PluginContract.address);
-        console.log("- TEST0_ERC4626Mock_Plugin Initialized");
+        // initialize plugin0
+        const plugin0Artifact = await ethers.getContractFactory("SpiritV2PairPlugin");
+        const plugin0Contract = await plugin0Artifact.deploy(LP0.address, OTOKEN.address, voter.address, [OTOKEN.address, WFTM.address], "SpiritSwapV2");
+        plugin0 = await ethers.getContractAt("SpiritV2PairPlugin", plugin0Contract.address);
+        console.log("- Plugin0 Initialized");
 
-        // initialize ERC4626Mock_Plugin for TEST1 in xTEST1
-        const TEST1_ERC4626Mock_PluginArtifact = await ethers.getContractFactory("ERC4626Mock_Plugin");
-        const TEST1_ERC4626Mock_PluginContract = await TEST1_ERC4626Mock_PluginArtifact.deploy(TEST1.address, xTEST1.address, OTOKEN.address, voter.address, [TEST1.address], [xTEST1.address], "Protocol0");
-        plugin1 = await ethers.getContractAt("ERC4626Mock_Plugin", TEST1_ERC4626Mock_PluginContract.address);
-        console.log("- TEST1_ERC4626Mock_Plugin Initialized");
+        // initialize plugin1
+        const plugin1Artifact = await ethers.getContractFactory("EqualizerPairGaugePlugin");
+        const plugin1Contract = await plugin1Artifact.deploy(LP1.address, OTOKEN.address, voter.address, [USDC.address, WFTM.address], [EQUAL.address], "Equalizer");
+        plugin1 = await ethers.getContractAt("EqualizerPairGaugePlugin", plugin1Contract.address);
+        console.log("- Plugin1 Initialized");
 
-        // initialize SolidlyLPMock_Plugin for LP0
-        const LP0_SolidlyLPMock_PluginArtifact = await ethers.getContractFactory("SolidlyLPMock_Plugin");
-        const LP0_SolidlyLPMock_PluginContract = await LP0_SolidlyLPMock_PluginArtifact.deploy(LP0.address, OTOKEN.address, voter.address, [TEST2.address, BASE.address], [TEST2.address, BASE.address], "Protocol1");
-        plugin2 = await ethers.getContractAt("SolidlyLPMock_Plugin", LP0_SolidlyLPMock_PluginContract.address);
-        console.log("- LP0_SolidityLPMock_Plugin Initialized");
+        // initialize plugin2
+        const plugin2Artifact = await ethers.getContractFactory("SpookyPairFarmPlugin");
+        const plugin2Contract = await plugin2Artifact.deploy(LP2.address, OTOKEN.address, voter.address, [USDC.address, WFTM.address], [BOO.address], "SpookySwap", 10);
+        plugin2 = await ethers.getContractAt("SpookyPairFarmPlugin", plugin2Contract.address);
+        console.log("- Plugin2 Initialized");
 
-        // initialize SolidlyLPMock_Plugin for LP1
-        const LP1_SolidlyLPMock_PluginArtifact = await ethers.getContractFactory("SolidlyLPMock_Plugin");
-        const LP1_SolidlyLPMock_PluginContract = await LP1_SolidlyLPMock_PluginArtifact.deploy(LP1.address, OTOKEN.address, voter.address, [TEST3.address, BASE.address], [TEST3.address, BASE.address], "Protocol1");
-        plugin3 = await ethers.getContractAt("SolidlyLPMock_Plugin", LP1_SolidlyLPMock_PluginContract.address);
-        console.log("- LP1_SolidityLPMock_Plugin Initialized");
+        // initialize plugin3
+        const plugin3Artifact = await ethers.getContractFactory("BeetsBPTFarmPlugin");
+        const plugin3Contract = await plugin3Artifact.deploy(LP3.address, OTOKEN.address, voter.address, [USDC.address, WFTM.address], [BEETS.address], "Beethoven", 99);
+        plugin3 = await ethers.getContractAt("BeetsBPTFarmPlugin", plugin3Contract.address);
+        console.log("- Plugin3 Initialized");
 
-        // add TEST0 in xTEST0 Plugin to Voter
+        // add plugin0 to voter
         await voter.addPlugin(plugin0.address);
-        let Gauge0Address = await voter.gauges(plugin0.address);
-        let Bribe0Address = await voter.bribes(plugin0.address);
-        gauge0 = await ethers.getContractAt("contracts/GaugeFactory.sol:Gauge", Gauge0Address);
-        bribe0 = await ethers.getContractAt("contracts/BribeFactory.sol:Bribe", Bribe0Address);
-        console.log("- TEST0_ERC4626Mock_Plugin Added in Voter");
+        let gauge0Addr = await plugin0.getGauge();
+        let bribe0Addr = await plugin0.getBribe();
+        gauge0 = await ethers.getContractAt("contracts/GaugeFactory.sol:Gauge", gauge0Addr);
+        bribe0 = await ethers.getContractAt("contracts/BribeFactory.sol:Bribe", bribe0Addr);
+        console.log("- Plugin0 added to Voter");
 
-        // add TEST1 in xTEST1 Plugin to Voter
+        // add plugin1 to voter
         await voter.addPlugin(plugin1.address);
-        let Gauge1Address = await voter.gauges(plugin1.address);
-        let Bribe1Address = await voter.bribes(plugin1.address);
-        gauge1 = await ethers.getContractAt("contracts/GaugeFactory.sol:Gauge", Gauge1Address);
-        bribe1 = await ethers.getContractAt("contracts/BribeFactory.sol:Bribe", Bribe1Address);
-        console.log("- TEST1_ERC4626Mock_Plugin Added in Voter");
+        let gauge1Addr = await plugin1.getGauge();
+        let bribe1Addr = await plugin1.getBribe();
+        gauge1 = await ethers.getContractAt("contracts/GaugeFactory.sol:Gauge", gauge1Addr);
+        bribe1 = await ethers.getContractAt("contracts/BribeFactory.sol:Bribe", bribe1Addr);
+        console.log("- Plugin1 added to Voter");
 
-        // add LP0 Plugin to Voter
+        // add plugin2 to voter
         await voter.addPlugin(plugin2.address);
-        let Gauge2Address = await voter.gauges(plugin2.address);
-        let Bribe2Address = await voter.bribes(plugin2.address);
-        gauge2 = await ethers.getContractAt("contracts/GaugeFactory.sol:Gauge", Gauge2Address);
-        bribe2 = await ethers.getContractAt("contracts/BribeFactory.sol:Bribe", Bribe2Address);
-        console.log("- LP0_SolidlyLPMock_Plugin Added in Voter");
+        let gauge2Addr = await plugin2.getGauge();
+        let bribe2Addr = await plugin2.getBribe();
+        gauge2 = await ethers.getContractAt("contracts/GaugeFactory.sol:Gauge", gauge2Addr);
+        bribe2 = await ethers.getContractAt("contracts/BribeFactory.sol:Bribe", bribe2Addr);
+        console.log("- Plugin2 added to Voter");
 
-        // add LP1 Plugin to Voter
+        // add plugin3 to voter
         await voter.addPlugin(plugin3.address);
-        let Gauge3Address = await voter.gauges(plugin3.address);
-        let Bribe3Address = await voter.bribes(plugin3.address);
-        gauge3 = await ethers.getContractAt("contracts/GaugeFactory.sol:Gauge", Gauge3Address);
-        bribe3 = await ethers.getContractAt("contracts/BribeFactory.sol:Bribe", Bribe3Address);
-        console.log("- LP1_SolidlyLPMock_Plugin Added in Voter");
+        let gauge3Addr = await plugin3.getGauge();
+        let bribe3Addr = await plugin3.getBribe();
+        gauge3 = await ethers.getContractAt("contracts/GaugeFactory.sol:Gauge", gauge3Addr);
+        bribe3 = await ethers.getContractAt("contracts/BribeFactory.sol:Bribe", bribe3Addr);
+        console.log("- Plugin3 added to Voter");
+
 
         console.log("Initialization Complete");
         console.log();
 
     });
-  
-    it("first test", async function () {
+
+    it("First Test", async function () {
         console.log("******************************************************");
     });
 
+
 });
-  

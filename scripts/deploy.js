@@ -460,7 +460,7 @@ async function main() {
   // await deployVoter();
   // await deployMinter();
   // await deployGovernor();
-  await deployMulticall();
+  // await deployMulticall();
 
   // Verification
   // await verifyTOKEN();

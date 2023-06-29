@@ -21,7 +21,7 @@ interface IBeetsMasterChef {
     function harvest(uint256 _pid, address _to) external;
 }
 
-abstract contract BeetsBPTFarmPlugin is Plugin {
+contract BeetsBPTFarmPlugin is Plugin {
     using SafeERC20 for IERC20;
 
     /*----------  CONSTANTS  --------------------------------------------*/
