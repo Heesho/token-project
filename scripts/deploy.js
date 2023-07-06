@@ -4,6 +4,8 @@ const hre = require("hardhat")
 
 const convert = (amount, decimals) => ethers.utils.parseUnits(amount, decimals);
 const one = convert("1", 18);
+const ten = convert("10", 18);
+const oneThousand = convert("1000", 18);
 const oneMillion = convert("1000000", 18);
 const tenMillion = convert("10000000", 18);
 
@@ -13,8 +15,8 @@ let VTOKENFactory, OTOKENFactory, feesFactory, rewarderFactory;
 let voter, minter, gaugeFactory, bribeFactory;
 let multicall, governor;
 let BASE;
-let TEST0, xTEST0, plugin0, gauge0, bribe0;
-let TEST1, xTEST1, plugin1, gauge1, bribe1;
+let TEST0, xTEST0, plugin0, plugin6, plugin8, gauge0, bribe0;
+let TEST1, xTEST1, plugin1, plugin7, plugin9, gauge1, bribe1;
 let LP0, plugin2, gauge2, bribe2;
 let LP1, plugin3, gauge3, bribe3;
 let GAME0, plugin4, gauge4, bribe4;
@@ -344,11 +346,13 @@ async function deployPlugin0() {
   const ERC20MockContract = await ERC20MockArtifact.deploy("TEST0", "TEST0", { gasPrice: ethers.gasPrice, });
   TEST0 = await ERC20MockContract.deployed();
   await sleep(5000);
+  console.log("TEST0 deployed at: ", TEST0.address);
   const ERC4626MockArtifact = await ethers.getContractFactory("ERC4626Mock");
   const ERC4626MockContract = await ERC4626MockArtifact.deploy("xTEST0", "xTEST0", TEST0.address, { gasPrice: ethers.gasPrice, });
   xTEST0 = await ERC4626MockContract.deployed();
   await sleep(5000);
-  const ERC4626Mock_PluginArtifact = await ethers.getContractFactory("ERC4626Mock_Plugin");
+  console.log("xTEST0 deployed at: ", xTEST0.address);
+  const ERC4626Mock_PluginArtifact = await ethers.getContractFactory("ERC4626MockPlugin");
   const ERC4626Mock_PluginContract = await ERC4626Mock_PluginArtifact.deploy(TEST0.address, xTEST0.address, OTOKEN.address, voter.address, [TEST0.address], [xTEST0.address], "Vault Protocol0", { gasPrice: ethers.gasPrice, });
   plugin0 = await ERC4626Mock_PluginContract.deployed();
   await sleep(5000);
@@ -424,21 +428,256 @@ async function deployPlugin5() {
   console.log("plugin5 deployed at: ", plugin5.address);
 }
 
+async function deployPlugin6() {
+  console.log('Starting plugin6 deployment');
+  const ERC20MockArtifact = await ethers.getContractFactory("ERC20Mock");
+  const ERC20MockContract = await ERC20MockArtifact.deploy("TEST0", "TEST0", { gasPrice: ethers.gasPrice, });
+  TEST0 = await ERC20MockContract.deployed();
+  await sleep(5000);
+  console.log("TEST0 deployed at: ", TEST0.address);
+  const ERC4626MockArtifact = await ethers.getContractFactory("ERC4626Mock");
+  const ERC4626MockContract = await ERC4626MockArtifact.deploy("xTEST0", "xTEST0", TEST0.address, { gasPrice: ethers.gasPrice, });
+  xTEST0 = await ERC4626MockContract.deployed();
+  await sleep(5000);
+  console.log("xTEST0 deployed at: ", xTEST0.address);
+  const ERC4626Mock_PluginArtifact = await ethers.getContractFactory("ERC4626MockPlugin");
+  const ERC4626Mock_PluginContract = await ERC4626Mock_PluginArtifact.deploy(TEST0.address, xTEST0.address, "0xc7a80762B3dcA438E81Ef6daA92E7323BE2e7C13", "0x6cC3217Eed6d45497b0f566522C36927da108321", [TEST0.address], [xTEST0.address], "Vault Protocol0", { gasPrice: ethers.gasPrice, });
+  plugin6 = await ERC4626Mock_PluginContract.deployed();
+  await sleep(5000);
+  console.log("plugin6 deployed at: ", plugin6.address);
+}
+
+async function deployPlugin7() {
+  console.log('Starting plugin7 deployment');
+  const ERC20MockArtifact = await ethers.getContractFactory("ERC20Mock");
+  const ERC20MockContract = await ERC20MockArtifact.deploy("TEST1", "TEST1", { gasPrice: ethers.gasPrice, });
+  TEST1 = await ERC20MockContract.deployed();
+  await sleep(5000);
+  console.log("TEST1 deployed at: ", TEST1.address);
+  const ERC4626MockArtifact = await ethers.getContractFactory("ERC4626Mock");
+  const ERC4626MockContract = await ERC4626MockArtifact.deploy("xTEST1", "xTEST1", TEST1.address, { gasPrice: ethers.gasPrice, });
+  xTEST1 = await ERC4626MockContract.deployed();
+  await sleep(5000);
+  console.log("xTEST1 deployed at: ", xTEST1.address);
+  const ERC4626Mock_PluginArtifact = await ethers.getContractFactory("ERC4626MockPlugin");
+  const ERC4626Mock_PluginContract = await ERC4626Mock_PluginArtifact.deploy(TEST1.address, xTEST1.address, "0xc7a80762B3dcA438E81Ef6daA92E7323BE2e7C13", "0x6cC3217Eed6d45497b0f566522C36927da108321", [TEST1.address], [xTEST1.address], "Vault Protocol0", { gasPrice: ethers.gasPrice, });
+  plugin7 = await ERC4626Mock_PluginContract.deployed();
+  await sleep(5000);
+  console.log("plugin7 deployed at: ", plugin7.address);
+}
+
+async function deployPlugin8() {
+  console.log('Starting plugin6 deployment');
+  TEST0 = await ethers.getContractAt("contracts/mocks/ERC20Mock.sol:ERC20Mock", "0x7FE495D9ff5860839951C05C1C4f8ee4e78C5c53");
+  await sleep(5000);
+  console.log("TEST0 deployed at: ", TEST0.address);
+  const ERC4626MockArtifact = await ethers.getContractFactory("ERC4626Mock");
+  const ERC4626MockContract = await ERC4626MockArtifact.deploy("xTEST0", "xTEST0", TEST0.address, { gasPrice: ethers.gasPrice, });
+  xTEST0 = await ERC4626MockContract.deployed();
+  await sleep(5000);
+  console.log("xTEST0 deployed at: ", xTEST0.address);
+  const ERC4626Mock_PluginArtifact = await ethers.getContractFactory("ERC4626MockPlugin");
+  const ERC4626Mock_PluginContract = await ERC4626Mock_PluginArtifact.deploy(TEST0.address, xTEST0.address, "0xc7a80762B3dcA438E81Ef6daA92E7323BE2e7C13", "0x6cC3217Eed6d45497b0f566522C36927da108321", [TEST0.address], [xTEST0.address], "Vault Protocol0", { gasPrice: ethers.gasPrice, });
+  plugin8 = await ERC4626Mock_PluginContract.deployed();
+  await sleep(5000);
+  console.log("plugin8 deployed at: ", plugin8.address);
+}
+
+async function deployPlugin9() {
+  console.log('Starting plugin9 deployment');
+  TEST1 = await ethers.getContractAt("contracts/mocks/ERC20Mock.sol:ERC20Mock", "0x280357C11c920f070CA36A7018AFab62a7C1C2E6");
+  await sleep(5000);
+  console.log("TEST1 deployed at: ", TEST1.address);
+  const ERC4626MockArtifact = await ethers.getContractFactory("ERC4626Mock");
+  const ERC4626MockContract = await ERC4626MockArtifact.deploy("xTEST1", "xTEST1", TEST1.address, { gasPrice: ethers.gasPrice, });
+  xTEST1 = await ERC4626MockContract.deployed();
+  await sleep(5000);
+  console.log("xTEST1 deployed at: ", xTEST1.address);
+  const ERC4626Mock_PluginArtifact = await ethers.getContractFactory("ERC4626MockPlugin");
+  const ERC4626Mock_PluginContract = await ERC4626Mock_PluginArtifact.deploy(TEST1.address, xTEST1.address, "0xc7a80762B3dcA438E81Ef6daA92E7323BE2e7C13", "0x6cC3217Eed6d45497b0f566522C36927da108321", [TEST1.address], [xTEST1.address], "Vault Protocol0", { gasPrice: ethers.gasPrice, });
+  plugin9 = await ERC4626Mock_PluginContract.deployed();
+  await sleep(5000);
+  console.log("plugin9 deployed at: ", plugin9.address);
+}
+
+
 async function addPlugins() {
   console.log('Starting to add plugins');
-  await voter.addPlugin(plugin0.address);
+  voter = await ethers.getContractAt("contracts/Voter.sol:Voter", "0x6cC3217Eed6d45497b0f566522C36927da108321");
   await sleep(5000);
-  await voter.addPlugin(plugin1.address);
+  console.log("Contracts Retrieved");
+  // await voter.addPlugin(plugin0.address);
+  // await sleep(5000);
+  // await voter.addPlugin(plugin1.address);
+  // await sleep(5000);
+  // await voter.addPlugin(plugin2.address);
+  // await sleep(5000);
+  // await voter.addPlugin(plugin3.address);
+  // await sleep(5000);
+  // await voter.addPlugin(plugin4.address);
+  // await sleep(5000);
+  // await voter.addPlugin(plugin5.address);
+  // await sleep(5000);
+  // await voter.addPlugin(plugin6.address);
+  // await sleep(5000);
+  // await voter.addPlugin(plugin7.address);
+  // await sleep(5000);
+  await voter.addPlugin(plugin8.address);
   await sleep(5000);
-  await voter.addPlugin(plugin2.address);
-  await sleep(5000);
-  await voter.addPlugin(plugin3.address);
-  await sleep(5000);
-  await voter.addPlugin(plugin4.address);
-  await sleep(5000);
-  await voter.addPlugin(plugin5.address);
-  await sleep(5000);
+  await voter.addPlugin(plugin9.address);
   console.log("plugins addred to voter");
+}
+
+async function verifyGauge() {
+  console.log('Starting Gauge Verification');
+  await hre.run("verify:verify", {
+    address: '', // gauge address
+    contract: "contracts/GaugeFactory.sol:Gauge",
+    constructorArguments: [
+      '', // voter address
+      ''  // plugin address
+    ],
+  });
+  console.log("Gauge Verified");
+}
+
+async function verifyBribe() {
+  console.log('Starting Bribe Verification');
+  await hre.run("verify:verify", {
+    address: '0x6a42D6334e4A05FE480E3De3C8fc159dB15f41E3', // bribe address
+    contract: "contracts/BribeFactory.sol:Bribe",
+    constructorArguments: [
+      '0x6cC3217Eed6d45497b0f566522C36927da108321', // voter address
+    ],
+  });
+  console.log("Bribe Verified");
+}
+
+async function verifyPlugin() {
+  console.log('Starting Plugin Verification');
+  await hre.run("verify:verify", {
+    address: '0x98cf7c8aE49F6dB81cb90724A648c166651D2610', // plugin address
+    contract: "contracts/plugins/local/ERC4626MockPlugin.sol:ERC4626MockPlugin",
+    constructorArguments: [
+      '0x7FE495D9ff5860839951C05C1C4f8ee4e78C5c53', // underlying address
+      '0x8C0823Cac7aFde109dda01C6f35535c1b2A6a904', // vault address
+      '0xc7a80762B3dcA438E81Ef6daA92E7323BE2e7C13', // otoken address
+      '0x6cC3217Eed6d45497b0f566522C36927da108321', // voter address
+      ['0x7FE495D9ff5860839951C05C1C4f8ee4e78C5c53'], // tokens in underlying
+      ['0x8C0823Cac7aFde109dda01C6f35535c1b2A6a904'], // bribe tokens
+      'Vault Protocol0' // protocol name
+    ],
+  });
+  console.log("Plugin Verified");
+}
+
+async function depositPlugins(wallet) {
+  console.log('Starting deposit in plugins');
+
+  TEST0 = await ethers.getContractAt("contracts/mocks/ERC20Mock.sol:ERC20Mock", "0x7FE495D9ff5860839951C05C1C4f8ee4e78C5c53");
+  plugin0 = await ethers.getContractAt("contracts/plugins/local/ERC4626MockPlugin.sol:ERC4626MockPlugin", "0x98cf7c8aE49F6dB81cb90724A648c166651D2610");
+
+  TEST1 = await ethers.getContractAt("contracts/mocks/ERC20Mock.sol:ERC20Mock", "0x280357C11c920f070CA36A7018AFab62a7C1C2E6");
+  plugin1 = await ethers.getContractAt("contracts/plugins/local/ERC4626MockPlugin.sol:ERC4626MockPlugin", "0xBC226703f7ae1088e871BF6561E37bB5A388a9F1");
+
+  LP0 = await ethers.getContractAt("contracts/mocks/SolidlyLPMock.sol:SolidlyLPMock", "0x286394574376094B4ccD2c9b1Bbd54D4D2A21672");
+  plugin2 = await ethers.getContractAt("contracts/plugins/local/SolidlyLPMockPlugin.sol:SolidlyLPMockPlugin", "0x2F19C9D551df303917d63B97b3118a2Ea5b1347E");
+
+  LP1 = await ethers.getContractAt("contracts/mocks/SolidlyLPMock.sol:SolidlyLPMock", "0x39d4eD360795A40558E54763a2c7EFe96EFc94d8");
+  plugin3 = await ethers.getContractAt("contracts/plugins/local/SolidlyLPMockPlugin.sol:SolidlyLPMockPlugin", "0x0a5076c8A15324B0e094d2aD7E249CaA5226c064");
+
+  GAME0 = await ethers.getContractAt("contracts/mocks/ERC20GameMock.sol:ERC20GameMock", "0xaCE38FE07f912B8c83bD72035e71374c2397242A");
+  plugin4 = await ethers.getContractAt("contracts/plugins/local/ERC20GameMockPlugin.sol:ERC20GameMockPlugin", "0x1Bb0B8612A8954D29427aC979DE02549c84D2E03");
+
+  GAME1 = await ethers.getContractAt("contracts/mocks/ERC20GameMock.sol:ERC20GameMock", "0x6cDBaD96E7a8321F1A4F677CF29Cc9f2305977bD");
+  plugin5 = await ethers.getContractAt("contracts/plugins/local/ERC20GameMockPlugin.sol:ERC20GameMockPlugin", "0x1A954cAE979C8F766c6adE9AF5742ebe05db7987");
+
+  // TEST0 = await ethers.getContractAt("contracts/mocks/ERC20Mock.sol:ERC20Mock", "0x146c0b06B301338987f61789E372b5FCa794A1db");
+  plugin6 = await ethers.getContractAt("contracts/plugins/local/ERC4626MockPlugin.sol:ERC4626MockPlugin", "0x39F3F324CfDCF45246582E201b28fDe8BEcf3Ea0");
+
+  // TEST1 = await ethers.getContractAt("contracts/mocks/ERC20Mock.sol:ERC20Mock", "0x299f856528AA85F66C108911FDA052695a1F7521");
+  plugin7 = await ethers.getContractAt("contracts/plugins/local/ERC4626MockPlugin.sol:ERC4626MockPlugin", "0xe6651bf9A48925fa6963Eb6eaE98FAb358bA3Cf7");
+
+  plugin8 = await ethers.getContractAt("contracts/plugins/local/ERC4626MockPlugin.sol:ERC4626MockPlugin", "0xf7FFB69Fd7048f693dc3566963B7F9a0e0669079");
+
+  plugin9 = await ethers.getContractAt("contracts/plugins/local/ERC4626MockPlugin.sol:ERC4626MockPlugin", "0x90fE4889D795503239D270D8a672137A08C83DdC");
+  
+  await sleep(5000);
+  console.log("Contracts Retrieved");
+
+  // await TEST0.mint(wallet, 10);
+  // await sleep(5000);
+  // await TEST0.approve(plugin0.address, ten);
+  // await sleep(5000);
+  // await plugin0.depositFor(wallet, ten);
+  // await sleep(5000);
+  // console.log("TEST0 Deposited");
+  // await plugin0.withdrawTo(wallet, ten);
+
+  // await TEST1.mint(wallet, 10);
+  // await sleep(5000);
+  // await TEST1.approve(plugin1.address, ten);
+  // await sleep(5000);
+  // await plugin1.depositFor(wallet, ten);
+  // await sleep(5000);
+  // console.log("TEST1 Deposited");
+
+  // await LP0.mint(wallet, 1000);
+  // await sleep(5000);
+  // await LP0.approve(plugin2.address, oneThousand);
+  // await sleep(5000);
+  // await plugin2.depositFor(wallet, oneThousand);
+  // await sleep(5000);
+  // console.log("LP0 Deposited");
+
+  // await LP1.mint(wallet, 1000);
+  // await sleep(5000);
+  // await LP1.approve(plugin3.address, oneThousand);
+  // await sleep(5000);
+  // await plugin3.depositFor(wallet, oneThousand);
+  // await sleep(5000);
+  // console.log("LP1 Deposited");
+
+  // await GAME0.approve(plugin4.address, one);
+  // await sleep(5000);
+  // await plugin4.depositFor(wallet, one);
+  // await sleep(5000);
+  // console.log("GAME0 Deposited");
+
+  // await GAME1.approve(plugin5.address, one);
+  // await sleep(5000);
+  // await plugin5.depositFor(wallet, one);
+  // await sleep(5000);
+  // console.log("GAME1 Deposited");
+
+  // await TEST0.mint(wallet, 1000);
+  // await sleep(5000);
+  // await TEST0.approve(plugin8.address, oneThousand);
+  // await sleep(5000);
+  // await plugin8.depositFor(wallet, oneThousand);
+  // await sleep(5000);
+  // console.log("TEST0 Deposited");
+
+  // await TEST1.mint(wallet, 1000);
+  // await sleep(5000);
+  // await TEST1.approve(plugin9.address, oneThousand);
+  // await sleep(5000);
+  // await plugin9.depositFor(wallet, oneThousand);
+  // await sleep(5000);
+  // console.log("TEST1 Deposited");
+
+  console.log("Plugin Deposited");
+}
+
+async function turnOffGauges() {
+  console.log('Starting to turn off gauges');
+
+  voter = await ethers.getContractAt("contracts/Voter.sol:Voter", "0x6cC3217Eed6d45497b0f566522C36927da108321");
+  await sleep(5000);
+  console.log("Contracts Retrieved");
+  await voter.killGauge("0xeaA7af4D82c2eBE1E645d5F6086832c9Aeb2cAbF");
+
+  console.log("Gauge turned off");
 }
 
 async function main() {
@@ -448,10 +687,10 @@ async function main() {
   
   // TOKEN system 
   // await deployBASE();
-  // await deployOTOKENFactory()
-  // await deployVTOKENFactory()
-  // await deployFeesFactory()
-  // await deployRewarderFactory()
+  // await deployOTOKENFactory();
+  // await deployVTOKENFactory();
+  // await deployFeesFactory();
+  // await deployRewarderFactory();
   // await deployTOKEN();
 
   // Voting system
@@ -485,8 +724,15 @@ async function main() {
   // await deployPlugin3();
   // await deployPlugin4();
   // await deployPlugin5();
+  // await deployPlugin6();
+  // await deployPlugin7();
+  // await deployPlugin8();
+  // await deployPlugin9();
 
   // await addPlugins();
+  // await turnOffGauges();
+
+  // await depositPlugins(wallet.address);
 
   console.log("System Deployed");
 }
